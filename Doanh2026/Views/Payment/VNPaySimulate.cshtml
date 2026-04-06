@@ -1,0 +1,94 @@
+@{
+    ViewBag.Title = "Giả lập VNPAY";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+    int orderId = ViewBag.OrderId;
+    decimal amount = ViewBag.Amount;
+    string transId = ViewBag.TransactionId;
+}
+
+<div class="max-w-lg mx-auto">
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        <!-- Header VNPAY -->
+        <div class="bg-gradient-to-r from-blue-700 to-blue-500 px-8 py-6 text-white text-center">
+            <div class="text-3xl font-black tracking-widest mb-1">VNPAY</div>
+            <div class="text-blue-200 text-xs">Cổng thanh toán trực tuyến</div>
+        </div>
+
+        <!-- Thông tin đơn hàng -->
+        <div class="px-8 py-6 bg-blue-50 border-b border-blue-100">
+            <div class="flex justify-between text-sm mb-2">
+                <span class="text-gray-500">Mã đơn hàng</span>
+                <span class="font-bold text-gray-800">#@orderId</span>
+            </div>
+            <div class="flex justify-between text-sm mb-2">
+                <span class="text-gray-500">Mã giao dịch</span>
+                <span class="font-mono text-gray-700 text-xs">@transId</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Số tiền</span>
+                <span class="font-black text-red-500 text-xl">@amount.ToString("N0")đ</span>
+            </div>
+        </div>
+
+        <!-- Giả lập chọn ngân hàng -->
+        <div class="px-8 py-6">
+            <p class="text-xs font-bold text-gray-500 uppercase mb-4">Chọn ngân hàng thanh toán (Giả lập)</p>
+            <div class="grid grid-cols-3 gap-3 mb-6" id="bankGrid">
+                @foreach(var bank in new[] { new{name="Vietcombank",bg="bg-green-50 border-green-200 text-green-800"}, new{name="Techcombank",bg="bg-red-50 border-red-200 text-red-700"}, new{name="Agribank",bg="bg-emerald-50 border-emerald-200 text-emerald-700"}, new{name="BIDV",bg="bg-blue-50 border-blue-200 text-blue-700"}, new{name="VietinBank",bg="bg-orange-50 border-orange-200 text-orange-700"}, new{name="MBBank",bg="bg-purple-50 border-purple-200 text-purple-700"} })
+                {
+                    <button onclick="selectBank(this, '@bank.name')" class="bank-btn border-2 rounded-xl py-3 text-xs font-bold transition hover:ring-2 hover:ring-blue-300 @bank.bg">@bank.name</button>
+                }
+            </div>
+
+            <div id="selectedBank" class="hidden bg-blue-50 rounded-xl p-3 mb-4 flex items-center gap-2">
+                <i class="fas fa-check-circle text-blue-500"></i>
+                <span class="text-sm font-medium text-blue-700">Đã chọn: <strong id="selectedBankName"></strong></span>
+            </div>
+
+            <!-- Nút thanh toán -->
+            <button onclick="confirmPayment(true)" id="btnPay" disabled class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl transition hover:bg-blue-700 shadow-md shadow-blue-600/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center mb-2">
+                <i class="fas fa-shield-alt mr-2"></i> XÁC NHẬN THANH TOÁN
+            </button>
+            <button onclick="confirmPayment(false)" class="w-full bg-red-50 text-red-500 border border-red-200 font-semibold py-2.5 rounded-xl text-sm hover:bg-red-100 transition">
+                <i class="fas fa-times mr-1"></i> Hủy thanh toán
+            </button>
+        </div>
+
+        <div class="px-8 pb-6 text-center text-[11px] text-gray-400">
+            <i class="fas fa-lock mr-1"></i> Giao dịch được bảo mật bởi SSL 256-bit - Đây là môi trường giả lập (Sandbox)
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    let selectedBankName = null;
+    
+    function selectBank(el, name) {
+        document.querySelectorAll('.bank-btn').forEach(b => b.classList.remove('ring-2','ring-blue-400'));
+        el.classList.add('ring-2','ring-blue-400');
+        selectedBankName = name;
+        document.getElementById('selectedBankName').textContent = name;
+        document.getElementById('selectedBank').classList.remove('hidden');
+        document.getElementById('btnPay').disabled = false;
+    }
+    
+    function confirmPayment(success) {
+        if(success && !selectedBankName) { alert('Vui lòng chọn ngân hàng!'); return; }
+        
+        var btn = document.getElementById('btnPay');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang xử lý...';
+        
+        // Giả lập delay banking
+        setTimeout(function() {
+            $.post('/Payment/VNPayConfirm', { orderId: @orderId, success: success }, function(res) {
+                if(res.paid) {
+                    window.location.href = '/Payment/OrderSuccess/' + @orderId;
+                } else {
+                    Swal.fire({icon:'error', title:'Thanh toán thất bại', text:'Giao dịch bị hủy hoặc không thành công.', confirmButtonText:'Quay lại giỏ hàng'}).then(() => window.location='/Cart/Index');
+                }
+            });
+        }, 2500);
+    }
+</script>

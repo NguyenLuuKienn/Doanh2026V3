@@ -1,0 +1,88 @@
+@model IEnumerable<Doanh2026.Models.DonHang>
+@{
+    ViewBag.Title = "Đơn đặt hàng của tôi";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+<div class="mb-6 text-[13px] text-gray-500">
+    Trang chủ &rsaquo; <span class="font-medium text-gray-700">Đơn đặt hàng của tôi</span>
+</div>
+
+<div class="max-w-6xl mx-auto">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-8 py-6 border-b border-gray-100 bg-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-xl font-bold text-gray-800 flex items-center">
+                <i class="fas fa-box-open mr-3 text-pcm-blue"></i> Lịch sử đơn hàng
+            </h1>
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-gray-400">Tổng cộng:</span>
+                <span class="bg-pcm-blue/10 text-pcm-blue px-3 py-1 rounded-full text-sm font-bold">@Model.Count() đơn hàng</span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-[11px] tracking-wider">
+                    <tr>
+                        <th class="px-8 py-4">Mã đơn</th>
+                        <th class="px-6 py-4">Ngày đặt</th>
+                        <th class="px-6 py-4">Trạng thái</th>
+                        <th class="px-6 py-4 text-right">Tổng tiền</th>
+                        <th class="px-8 py-4 text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="py-20 text-center">
+                                <i class="fas fa-file-invoice text-5xl text-gray-100 mb-4 block"></i>
+                                <p class="text-gray-400 font-medium">Bạn chưa có đơn đặt hàng nào.</p>
+                                <a href="/" class="mt-4 inline-block text-pcm-blue font-bold hover:underline">Tiếp tục mua sắm</a>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr class="hover:bg-blue-50/30 transition">
+                                <td class="px-8 py-5 font-bold text-pcm-blue">#DH@(item.MaDonHang.ToString("D5"))</td>
+                                <td class="px-6 py-5 text-gray-600">@(item.NgayDat?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
+                                <td class="px-6 py-5">
+                                    @{
+                                        var statusClass = "bg-gray-100 text-gray-600";
+                                        var statusName = item.TrangThaiDonHang?.TenTrangThai ?? "N/A";
+                                        if (statusName.Contains("Chờ")) { statusClass = "bg-amber-100 text-amber-700"; }
+                                        else if (statusName.Contains("Đang giao")) { statusClass = "bg-blue-100 text-blue-700"; }
+                                        else if (statusName.Contains("Đã giao")) { statusClass = "bg-green-100 text-green-700 border border-green-200"; }
+                                        else if (statusName.Contains("Hủy")) { statusClass = "bg-red-100 text-red-700"; }
+                                    }
+                                    <span class="px-3 py-1 rounded-full text-[11px] font-bold @statusClass whitespace-nowrap">
+                                        @statusName
+                                    </span>
+                                </td>
+                                <td class="px-6 py-5 text-right">
+                                    <span class="font-extrabold text-gray-800">
+                                        @(item.TongTien?.ToString("N0") ?? "0")đ
+                                    </span>
+                                </td>
+                                <td class="px-8 py-5 text-center">
+                                    <a href="/Payment/OrderHistoryDetails/@item.MaDonHang" class="text-[12px] font-bold text-pcm-blue border border-pcm-blue/20 bg-white hover:bg-pcm-blue hover:text-white px-4 py-1.5 rounded-lg transition shadow-sm inline-block">
+                                        Chi tiết
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="p-8 bg-slate-50 border-t border-gray-100">
+            <p class="text-xs text-gray-400 italic">
+                <i class="fas fa-info-circle mr-1"></i> Lưu ý: Mọi thắc mắc về đơn hàng vui lòng liên hệ Hotline: 087.997.9997 (24/7)
+            </p>
+        </div>
+    </div>
+</div>

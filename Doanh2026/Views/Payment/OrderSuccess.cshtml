@@ -1,0 +1,82 @@
+@model Doanh2026.Models.DonHang
+@{
+    ViewBag.Title = "Đặt hàng thành công";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+<div class="max-w-4xl mx-auto py-12 px-4">
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 p-8 md:p-12 text-center">
+        <!-- Success Icon -->
+        <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+            <i class="fas fa-check-circle text-5xl"></i>
+        </div>
+
+        <h1 class="text-3xl font-black text-gray-800 mb-2 uppercase">Đặt hàng thành công!</h1>
+        <p class="text-gray-600 mb-8">Cảm ơn bạn đã tin tưởng QuốcDoanhJr. Đơn hàng của bạn đang được xử lý.</p>
+
+        <!-- Order Info Card -->
+        <div class="bg-gray-50 rounded-2xl p-6 mb-8 text-left border border-gray-200">
+            <div class="flex flex-wrap justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                <div>
+                    <span class="text-xs font-bold text-gray-400 uppercase">Mã đơn hàng</span>
+                    <div class="text-xl font-black text-pcm-blue">#@Model.MaDonHang</div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-bold text-gray-400 uppercase">Ngày đặt</span>
+                    <div class="text-sm font-bold text-gray-700">@Model.NgayDat.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-xs font-black text-gray-400 uppercase mb-3">Thông tin nhận hàng</h3>
+                    <div class="space-y-1.5 text-sm">
+                        <p class="font-bold text-gray-800">@Model.TenNguoiNhan</p>
+                        <p class="text-gray-600"><i class="fas fa-phone mr-2 w-4"></i>@Model.SoDienThoaiNhan</p>
+                        <p class="text-gray-600"><i class="fas fa-map-marker-alt mr-2 w-4"></i>@Model.DiaChiGiao</p>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xs font-black text-gray-400 uppercase mb-3">Thanh toán</h3>
+                    <div class="space-y-1.5 text-sm">
+                        <p class="text-gray-600">Phương thức: <span class="font-bold text-gray-800">@Model.PhuongThucThanhToan</span></p>
+                        <p class="text-gray-600">Trạng thái: 
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold @(Model.MaTrangThai == 2 ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")">
+                                @Model.TrangThaiDonHang.TenTrangThai
+                            </span>
+                        </p>
+                        <p class="text-red-500 font-black text-lg mt-2">Tổng tiền: @Model.TongTien.Value.ToString("N0")đ</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Summary Table -->
+        <div class="mb-10 overflow-hidden border border-gray-200 rounded-xl">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-gray-100 text-gray-600 font-bold text-xs uppercase">
+                    <tr>
+                        <th class="px-6 py-3">Sản phẩm</th>
+                        <th class="px-6 py-3 text-center">Số lượng</th>
+                        <th class="px-6 py-3 text-right">Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @foreach (var item in Model.ChiTietDonHangs)
+                    {
+                        <tr>
+                            <td class="px-6 py-4 font-bold text-gray-800">@item.SanPham.TenSanPham</td>
+                            <td class="px-6 py-4 text-center">x@item.SoLuong</td>
+                            <td class="px-6 py-4 text-right font-bold text-gray-700">@((item.DonGia * item.SoLuong).Value.ToString("N0"))đ</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-4 justify-center">
+            <a href="/" class="px-10 py-3.5 bg-pcm-blue text-white font-black rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/30">QUAY LẠI TRANG CHỦ</a>
+            <a href="/Account/MyOrders" class="px-10 py-3.5 bg-white border-2 border-gray-200 text-gray-700 font-black rounded-xl hover:bg-gray-50 transition">LỊCH SỬ ĐƠN HÀNG</a>
+        </div>
+    </div>
+</div>

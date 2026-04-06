@@ -1,0 +1,130 @@
+@using Doanh2026.Models
+@{
+    ViewBag.Title = "Thanh toán";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+    var gioHang = ViewBag.GioHang as GioHang;
+    var chiTiets = gioHang?.ChiTietGioHangs?.ToList() ?? new System.Collections.Generic.List<ChiTietGioHang>();
+    var user = ViewBag.User as NguoiDung;
+    decimal tongTien = ViewBag.TongTien;
+}
+
+<div class="mb-4 text-[13px] text-gray-500">
+    Trang chủ &rsaquo; <a href="/Cart/Index" class="hover:text-pcm-blue">Giỏ hàng</a> &rsaquo; <span class="font-medium text-gray-700">Thanh toán</span>
+</div>
+
+<div class="flex flex-col lg:flex-row gap-6 items-start">
+    <!-- LEFT: Form thông tin -->
+    <div class="flex-1">
+        <form action="/Payment/PlaceOrder" method="post" id="checkoutForm">
+            @Html.AntiForgeryToken()
+            @Html.ValidationSummary(true, "", new { @class = "bg-red-50 text-red-600 p-4 rounded-xl mb-5 text-sm font-medium border border-red-100" })
+            <!-- Thông tin giao hàng -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-5">
+                <div class="px-6 py-4 border-b border-gray-100 bg-slate-50">
+                    <h2 class="font-bold text-gray-800"><i class="fas fa-map-marker-alt mr-2 text-pcm-blue"></i>Thông tin giao hàng</h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5">Người nhận <span class="text-red-500">*</span></label>
+                            <input type="text" name="tenNguoiNhan" value="@user.HoTen" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue outline-none" />
+                        </div>
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5">Điện thoại <span class="text-red-500">*</span></label>
+                            <input type="tel" name="dienThoaiNhan" value="@user.SoDienThoai" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue outline-none" />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5">Địa chỉ giao hàng <span class="text-red-500">*</span></label>
+                            <textarea name="diaChiGiao" rows="2" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue outline-none">@user.DiaChi</textarea>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5">Ghi chú đơn hàng</label>
+                            <textarea name="ghiChu" rows="2" placeholder="Hướng dẫn giao hàng, yêu cầu đặc biệt..." class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue outline-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phương thức thanh toán -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 bg-slate-50">
+                    <h2 class="font-bold text-gray-800"><i class="fas fa-credit-card mr-2 text-pcm-blue"></i>Phương thức thanh toán</h2>
+                </div>
+                <div class="p-6 space-y-3">
+                    <!-- COD -->
+                    <label class="flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition hover:border-pcm-blue" id="lbl-cod">
+                        <input type="radio" name="phuongThucTT" value="COD" checked onchange="selectPayment(this)" class="w-4 h-4 accent-pcm-blue" />
+                        <div class="flex items-center gap-3 flex-1">
+                            <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-2xl">💵</div>
+                            <div>
+                                <div class="font-bold text-gray-800">Thanh toán khi nhận hàng (COD)</div>
+                                <div class="text-xs text-gray-500 mt-0.5">Kiểm tra hàng trước khi thanh toán</div>
+                            </div>
+                        </div>
+                        <span class="text-xs bg-green-100 text-green-700 font-bold px-2 py-1 rounded-full">Miễn phí</span>
+                    </label>
+
+                    <!-- VNPAY -->
+                    <label class="flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition hover:border-blue-500" id="lbl-vnpay">
+                        <input type="radio" name="phuongThucTT" value="VNPAY" onchange="selectPayment(this)" class="w-4 h-4 accent-blue-600" />
+                        <div class="flex items-center gap-3 flex-1">
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center font-black text-blue-600 text-sm">VNPAY</div>
+                            <div>
+                                <div class="font-bold text-gray-800">Thanh toán qua VNPAY</div>
+                                <div class="text-xs text-gray-500 mt-0.5">ATM, Visa, Master, QR Code</div>
+                            </div>
+                        </div>
+                        <span class="text-xs bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded-full">Nhanh chóng</span>
+                    </label>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- RIGHT: Tóm tắt đơn hàng -->
+    <div class="lg:w-80 shrink-0">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 sticky top-4">
+            <div class="px-6 py-4 border-b border-gray-100 bg-slate-50">
+                <h2 class="font-bold text-gray-800">Đơn hàng của bạn (@chiTiets.Count sản phẩm)</h2>
+            </div>
+            <div class="p-5 space-y-3 max-h-72 overflow-auto">
+                @foreach(var ct in chiTiets)
+                {
+                    var gia = ct.SanPham.GiaUuDai ?? ct.SanPham.GiaGoc;
+                    <div class="flex items-center gap-3 text-sm">
+                        <span class="bg-pcm-blue text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0">@ct.SoLuong</span>
+                        <span class="flex-1 text-gray-700 leading-tight">@ct.SanPham.TenSanPham</span>
+                        <span class="font-bold text-gray-800 shrink-0">@((gia*(ct.SoLuong)).ToString("N0"))đ</span>
+                    </div>
+                }
+            </div>
+            <div class="p-5 border-t space-y-3">
+                <div class="flex justify-between text-sm text-gray-600"><span>Tạm tính</span><span>@tongTien.ToString("N0")đ</span></div>
+                <div class="flex justify-between text-sm text-gray-600"><span>Vận chuyển</span><span class="text-green-600 font-bold">Miễn phí</span></div>
+                <div class="flex justify-between font-bold text-base border-t pt-3">
+                    <span>Tổng cộng</span>
+                    <span class="text-red-500 text-xl">@tongTien.ToString("N0")đ</span>
+                </div>
+                <button type="submit" form="checkoutForm"
+                    class="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-3.5 rounded-xl transition shadow-md shadow-red-500/30 flex items-center justify-center text-sm">
+                    <i class="fas fa-check-circle mr-2"></i> Xác nhận đặt hàng
+                </button>
+                <a href="/Cart/Index" class="block text-center text-pcm-blue text-sm hover:underline">
+                    <i class="fas fa-arrow-left mr-1"></i> Quay lại giỏ hàng
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+input[type="radio"]:checked + div { opacity: 1; }
+#lbl-cod:has(input:checked) { border-color: #f59e0b; background: #fffbeb; }
+#lbl-vnpay:has(input:checked) { border-color: #007cc2; background: #eff6ff; }
+</style>
+<script>
+function selectPayment(el) {
+    document.querySelectorAll('label[id^="lbl-"]').forEach(l => l.classList.remove('border-pcm-blue'));
+    el.closest('label').classList.add('border-pcm-blue');
+}
+</script>

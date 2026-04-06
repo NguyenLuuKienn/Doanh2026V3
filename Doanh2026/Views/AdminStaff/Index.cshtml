@@ -1,0 +1,224 @@
+@model IEnumerable<Doanh2026.Models.NguoiDung>
+@{
+    ViewBag.Title = "Quản lý Nhân viên";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="mb-6 flex flex-col sm:flex-row justify-between sm:items-center p-1">
+    <div>
+        <h1 class="text-2xl font-bold text-slate-800">Quản lý Nhân viên</h1>
+        <p class="text-xs text-slate-500 mt-1">Quản lý tài khoản Admin và nhân viên hệ thống.</p>
+    </div>
+    <button onclick="openModal('create')" class="mt-4 sm:mt-0 bg-pcm-blue text-white px-4 py-2 rounded-md text-xs font-semibold shadow-md hover:bg-blue-700 transition flex items-center">
+        <i class="fas fa-user-tie mr-1.5"></i> Thêm nhân viên
+    </button>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+        <form action="/AdminStaff/Index" method="get" class="relative">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" name="searchString" value="@ViewBag.SearchString" placeholder="Tìm tên, email nhân viên..." class="pl-9 pr-4 py-2 border border-slate-200 rounded-md text-sm focus:border-pcm-blue outline-none w-[280px]" />
+            <button type="submit" class="hidden"></button>
+        </form>
+        <span class="text-xs text-slate-500">@Model.Count() nhân viên</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider">
+                <tr>
+                    <th class="py-3 px-5">Nhân viên</th>
+                    <th class="py-3 px-5">Liên hệ</th>
+                    <th class="py-3 px-5 text-center">Vai trò</th>
+                    <th class="py-3 px-5 text-center">Trạng thái</th>
+                    <th class="py-3 px-5 text-center">Hành động</th>
+                </tr>
+            </thead>
+            <tbody class="text-[13px] text-slate-700 divide-y divide-slate-100">
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var s in Model)
+                    {
+                        var isAdmin = s.MaVaiTro == 1;
+                        var isLocked = s.TrangThaiTaiKhoan == "KhoaTaiKhoan";
+                        var isCurrentUser = (int?)Session["UserId"] == s.MaNguoiDung;
+                        <tr class="hover:bg-slate-50 transition @(isCurrentUser ? "bg-blue-50/50" : "")">
+                            <td class="py-3 px-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full @(isAdmin ? "bg-gradient-to-br from-amber-400 to-orange-500" : "bg-gradient-to-br from-slate-400 to-slate-600") text-white flex items-center justify-center font-bold text-sm shrink-0">
+                                        @(s.HoTen?.Substring(0, 1).ToUpper())
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-slate-800">@s.HoTen @(isCurrentUser ? "<span class=\"text-[10px] text-pcm-blue font-bold\">(Bạn)</span>" : "")</div>
+                                        <div class="text-[11px] text-slate-400">#@s.MaNguoiDung</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-5">
+                                <div class="font-medium">@s.Email</div>
+                                <div class="text-[12px] text-slate-500">@s.SoDienThoai</div>
+                            </td>
+                            <td class="py-3 px-5 text-center">
+                                @if (isAdmin)
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700"><i class="fas fa-crown mr-1"></i> Admin</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600"><i class="fas fa-user-tie mr-1"></i> Nhân viên</span>
+                                }
+                            </td>
+                            <td class="py-3 px-5 text-center">
+                                @if (isLocked)
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 text-red-600"><i class="fas fa-lock mr-1"></i> Bị khóa</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700"><i class="fas fa-check mr-1"></i> Hoạt động</span>
+                                }
+                            </td>
+                            <td class="py-3 px-5 text-center space-x-1">
+                                <button onclick="openModal('edit', @s.MaNguoiDung)" class="w-7 h-7 rounded bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white transition" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
+                                @if (!isCurrentUser)
+                                {
+                                    <button onclick="toggleStatus(@s.MaNguoiDung)" class="w-7 h-7 rounded bg-slate-100 text-slate-500 @(isLocked ? "hover:bg-green-500" : "hover:bg-red-500") hover:text-white transition">
+                                        <i class="fas @(isLocked ? "fa-lock-open" : "fa-ban") text-xs"></i>
+                                    </button>
+                                    <button onclick="deleteStaff(@s.MaNguoiDung, '@s.HoTen')" class="w-7 h-7 rounded bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white transition" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="5" class="py-10 text-center text-slate-400"><i class="fas fa-user-tie text-3xl mb-2 block text-slate-200"></i>Không có nhân viên nào</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL -->
+<div id="staffModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
+    <div class="min-h-screen px-4 flex items-center justify-center">
+        <div class="inline-block w-full max-w-lg bg-white rounded-xl shadow-2xl text-left overflow-hidden transform scale-95 opacity-0 transition-all" id="modalDialog">
+            <div class="flex justify-between items-center px-6 py-4 border-b bg-slate-50">
+                <h3 class="text-base font-bold text-slate-800" id="modalTitle">Thêm Nhân Viên</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="staffForm" onsubmit="submitForm(event)" class="p-6 space-y-4">
+                <input type="hidden" id="MaNguoiDung" name="MaNguoiDung" value="0" />
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Họ & Tên <span class="text-red-500">*</span></label>
+                        <input type="text" id="HoTen" name="HoTen" required class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none focus:border-pcm-blue" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Email <span class="text-red-500">*</span></label>
+                        <input type="email" id="Email" name="Email" required class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none focus:border-pcm-blue" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Mật khẩu</label>
+                        <input type="password" id="MatKhau" name="MatKhau" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none focus:border-pcm-blue" placeholder="Để trống = không đổi" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">SĐT</label>
+                        <input type="tel" id="SoDienThoai" name="SoDienThoai" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none focus:border-pcm-blue" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Vai trò</label>
+                        <select id="MaVaiTro" name="MaVaiTro" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none bg-white focus:border-pcm-blue">
+                            <option value="3">Nhân viên</option>
+                            <option value="1">Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Trạng thái</label>
+                        <select id="TrangThaiTaiKhoan" name="TrangThaiTaiKhoan" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none bg-white focus:border-pcm-blue">
+                            <option value="HoatDong">Hoạt động</option>
+                            <option value="KhoaTaiKhoan">Bị khóa</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-md text-sm">Đóng</button>
+                    <button type="submit" id="btnSubmit" class="bg-pcm-blue text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-blue-800 flex items-center">
+                        <i class="fas fa-save mr-2"></i> Lưu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    let currentMode = 'create';
+    const modal = document.getElementById('staffModal');
+    const dialog = document.getElementById('modalDialog');
+
+    function openModal(mode, id = 0) {
+        currentMode = mode;
+        document.getElementById('staffForm').reset();
+        if (mode === 'create') {
+            document.getElementById('modalTitle').innerText = 'Thêm Nhân Viên Mới';
+            $('#Email').prop('readonly', false);
+            showModal();
+        } else {
+            document.getElementById('modalTitle').innerText = 'Cập nhật Nhân Viên #' + id;
+            $('#Email').prop('readonly', true);
+            $.get('/AdminStaff/GetStaff/' + id, function(res) {
+                if(res.success) {
+                    $('#MaNguoiDung').val(res.data.MaNguoiDung);
+                    $('#HoTen').val(res.data.HoTen);
+                    $('#Email').val(res.data.Email);
+                    $('#SoDienThoai').val(res.data.SoDienThoai);
+                    $('#MaVaiTro').val(res.data.MaVaiTro);
+                    $('#TrangThaiTaiKhoan').val(res.data.TrangThaiTaiKhoan);
+                    showModal();
+                }
+            });
+        }
+    }
+
+    function showModal() {
+        modal.classList.remove('hidden');
+        setTimeout(() => { dialog.classList.remove('scale-95','opacity-0'); dialog.classList.add('scale-100','opacity-100'); }, 10);
+    }
+
+    function closeModal() {
+        dialog.classList.add('scale-95','opacity-0'); dialog.classList.remove('scale-100','opacity-100');
+        setTimeout(() => modal.classList.add('hidden'), 200);
+    }
+
+    function submitForm(e) {
+        e.preventDefault();
+        let url = currentMode === 'create' ? '/AdminStaff/Create' : '/AdminStaff/Edit';
+        let formData = new FormData(document.getElementById('staffForm'));
+        $.ajax({ url, type: 'POST', data: formData, processData: false, contentType: false,
+            success: function(res) {
+                if(res.success) { closeModal(); Swal.fire({icon:'success',title:'Thành công',text:res.message,timer:1500,showConfirmButton:false}).then(()=>location.reload()); }
+                else Swal.fire({icon:'error',title:'Lỗi',text:res.message});
+            }
+        });
+    }
+
+    function toggleStatus(id) {
+        $.post('/AdminStaff/ToggleStatus', { id }, function(res) {
+            if(res.success) Swal.fire({icon:'success',title:'Đã cập nhật!',timer:1200,showConfirmButton:false}).then(()=>location.reload());
+        });
+    }
+
+    function deleteStaff(id, name) {
+        Swal.fire({title:'Xóa nhân viên?', html:`<b>${name}</b> sẽ bị xóa khỏi hệ thống!`, icon:'warning', showCancelButton:true, confirmButtonColor:'#ef4444', confirmButtonText:'Xóa'})
+        .then(r => {
+            if(r.isConfirmed) $.post('/AdminStaff/Delete/' + id, function(res) {
+                if(res.success) Swal.fire({icon:'success',title:'Đã xóa!',timer:1200,showConfirmButton:false}).then(()=>location.reload());
+                else Swal.fire({icon:'error',text:res.message});
+            });
+        });
+    }
+</script>

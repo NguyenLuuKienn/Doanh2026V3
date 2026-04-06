@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - QuốcDoanhJr</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pcm-blue': '#007cc2',
+                        'pcm-dark': '#0e2c56'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <!-- Top Bar -->
+    <div class="bg-indigo-900 text-white text-xs py-1 border-b border-indigo-800">
+        <div class="container mx-auto max-w-7xl flex justify-between items-center px-4">
+            <div class="flex space-x-4 items-center overflow-x-auto no-scrollbar whitespace-nowrap pb-1 md:pb-0">
+                <a href="#" class="hover:text-gray-300 flex items-center bg-purple-700 px-3 py-1 rounded-full text-[10px] md:text-[11px]"><i class="fas fa-map-marker-alt mr-1"></i> Showroom</a>
+                <a href="#" class="hover:text-gray-300 flex items-center bg-purple-800 px-3 py-1 rounded-full text-[10px] md:text-[11px]"><i class="fas fa-phone mr-1"></i> Bán hàng</a>
+                <a href="#" class="hover:text-gray-300 hidden md:flex items-center"><i class="fas fa-newspaper mr-1"></i> Tin công nghệ</a>
+                <a href="#" class="hover:text-gray-300 flex items-center bg-purple-700 px-3 py-1 rounded-full text-[10px] md:text-[11px]"><i class="fas fa-desktop mr-1"></i> TƯ VẤN PC</a>
+            </div>
+            <div class="flex space-x-1 items-center" id="topbar-auth">
+                @if (Session["UserId"] != null)
+                {
+                    <!-- User đã đăng nhập: dropdown -->
+                    <div class="relative group">
+                        <button class="flex items-center space-x-1.5 hover:text-yellow-300 transition py-1 px-2 rounded hover:bg-white/10">
+                            <i class="fas fa-user-circle text-base mr-1"></i>
+                            <span class="font-semibold text-[12px]">@Session["UserName"]</span>
+                            <i class="fas fa-caret-down text-[10px] ml-0.5"></i>
+                        </button>
+                        <!-- Dropdown menu -->
+                        <div class="absolute right-0 top-full pt-1 w-52 hidden group-hover:block z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div class="bg-white text-gray-700 rounded-lg shadow-2xl border border-gray-100 text-[13px] font-medium overflow-hidden transform transition-all">
+                            <div class="bg-pcm-blue text-white px-4 py-3 text-xs">
+                                <div class="font-bold text-base">@Session["UserName"]</div>
+                                <div class="text-blue-200">@Session["UserEmail"]</div>
+                            </div>
+                            <a href="/Account/MyOrders" class="flex items-center px-4 py-2.5 hover:bg-blue-50 hover:text-pcm-blue transition border-b border-gray-100">
+                                <i class="fas fa-box-open w-5 text-center mr-2 text-indigo-400"></i> Đơn đặt hàng của tôi
+                            </a>
+                            <a href="/Account/Profile" class="flex items-center px-4 py-2.5 hover:bg-blue-50 hover:text-pcm-blue transition border-b border-gray-100">
+                                <i class="fas fa-id-card w-5 text-center mr-2 text-green-400"></i> Thông tin cá nhân
+                            </a>
+                            @if ((int?)Session["UserRole"] == 1)
+                            {
+                                <a href="/Admin/Index" class="flex items-center px-4 py-2.5 hover:bg-blue-50 hover:text-pcm-blue transition border-b border-gray-100">
+                                    <i class="fas fa-cogs w-5 text-center mr-2 text-amber-400"></i> Quản trị Admin
+                                </a>
+                            }
+                            <a href="/Account/Logout" class="flex items-center px-4 py-2.5 hover:bg-red-50 hover:text-red-500 transition text-red-400">
+                                <i class="fas fa-sign-out-alt w-5 text-center mr-2"></i> Đăng xuất
+                            </a>
+                        </div>
+                    </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- Chưa đăng nhập: nút modal -->
+                    <i class="fas fa-user mr-1 text-[11px]"></i>
+                    <button onclick="openAuthModal('register')" class="hover:text-gray-300 transition">Đăng ký</button>
+                    <span class="mx-1 text-gray-400">|</span>
+                    <button onclick="openAuthModal('login')" class="hover:text-gray-300 transition">Đăng nhập</button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Header Main -->
+    <header class="bg-pcm-blue text-white py-3 md:py-4 shadow-md sticky top-0 z-50">
+        <div class="container mx-auto max-w-7xl px-4 flex flex-col lg:flex-row justify-between items-center gap-3 lg:gap-6">
+            <div class="flex items-center justify-between w-full lg:w-auto">
+                <!-- Hamburger (Mobile) -->
+                <button onclick="toggleMobileMenu()" class="lg:hidden text-2xl mr-4">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <!-- Logo -->
+                <a href="/" class="text-2xl md:text-3xl font-black tracking-tighter flex items-center mx-auto lg:mx-0">
+                    QuốcDoanh<span class="text-yellow-400 ml-1">Jr</span>
+                </a>
+
+                <!-- Cart (Mobile) -->
+                <a href="/Cart/Index" class="lg:hidden relative">
+                    <i class="fas fa-shopping-cart text-2xl"></i>
+                    <span id="cart-badge-mobile" class="absolute -top-2 -right-3 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">0</span>
+                </a>
+            </div>
+
+            <!-- Search -->
+            <div class="w-full lg:flex-1 max-w-2xl order-3 lg:order-2">
+                <form action="/Product/Search" method="get" class="flex w-full relative drop-shadow-sm">
+                    <select class="hidden md:block bg-white text-gray-700 px-3 py-[10px] rounded-l-md border-r outline-none text-sm w-[150px] font-medium border-gray-200">
+                        <option>Tất cả danh mục</option>
+                        <option>PC Gaming</option>
+                        <option>PC Workstation</option>
+                        <option>Linh kiện</option>
+                    </select>
+                    <input type="text" name="keyword" placeholder="Tìm kiếm sản phẩm..." class="flex-1 px-4 py-[10px] text-gray-800 outline-none text-sm border-y border-gray-200 rounded-l-md md:rounded-l-none" />
+                    <button type="submit" class="bg-pcm-dark px-5 py-[10px] text-white hover:bg-blue-950 rounded-r-md transition"><i class="fas fa-search"></i></button>
+                </form>
+                <div class="hidden md:flex space-x-3 text-[11px] mt-1.5 text-blue-100 px-1">
+                    <a href="#" class="hover:text-white">Màn hình</a>
+                    <a href="#" class="hover:text-white">PC Gaming</a>
+                    <a href="#" class="hover:text-white">CPU</a>
+                </div>
+            </div>
+
+            <!-- Header Actions (Desktop Only) -->
+            <div class="hidden lg:flex items-center space-x-5 text-sm shrink-0 order-2 lg:order-3">
+                <div class="flex flex-col flex-wrap justify-center items-center cursor-pointer hover:text-gray-200 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 transition hover:bg-white/20">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center text-pcm-blue shadow-sm">
+                            <i class="fas fa-phone-alt"></i>
+                        </div>
+                        <div class="flex flex-col text-left">
+                            <span class="text-[10px] uppercase font-semibold text-blue-100 leading-none">Hotline</span>
+                            <span class="font-bold text-base leading-tight font-inter">087.997.9997</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <a href="/Cart/Index" class="flex items-center cursor-pointer justify-center hover:bg-pcm-dark/80 bg-pcm-dark px-4 py-2 rounded-full border border-blue-900 transition">
+                    <div class="relative mr-2">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span id="cart-badge" class="absolute -top-2 -right-3 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">0</span>
+                    </div>
+                    <span class="font-semibold text-sm">Giỏ hàng</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="bg-pcm-blue pt-0 border-b border-blue-600 shadow-sm relative z-40 hidden lg:block">
+        <div class="container mx-auto max-w-7xl px-4 flex">
+            <!-- Mega Menu Categories -->
+            <div class="relative bg-white text-pcm-blue font-bold w-[260px] flex items-center px-4 py-3 cursor-pointer rounded-t-md group">
+                <i class="fas fa-bars mr-3"></i>
+                <span class="text-[13px]">DANH MỤC SẢN PHẨM</span>
+                <i class="fas fa-caret-down ml-auto"></i>
+                
+                <!-- Mega Menu Dropdown -->
+                <div class="absolute top-full left-0 w-full bg-white shadow-xl border-x border-b border-gray-200 hidden group-hover:block z-50 rounded-b-md text-gray-700 text-sm overflow-hidden">
+                    <ul class="py-1">
+                        @{
+                            var dbNav = new Doanh2026.Models.Doanh2026Entities();
+                            var categories = dbNav.DanhMucs.ToList();
+                        }
+                        @foreach(var cat in categories) {
+                            <li class="px-4 py-2.5 hover:bg-blue-50 hover:text-pcm-blue border-b border-gray-100 flex items-center transition">
+                                <i class="fas fa-chevron-right w-6 text-center text-gray-400 text-[10px]"></i> 
+                                <a href="/Product/Category/@cat.MaDanhMuc" class="flex-1 font-medium text-[13px] ml-1">@cat.TenDanhMuc</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Nav Links -->
+            <div class="flex-1 flex items-center space-x-1 pl-4 text-white text-[12px] font-bold overflow-hidden">
+                <a href="#" class="px-3 py-1.5 rounded hover:bg-white/10 hover:text-yellow-300 transition whitespace-nowrap"><i class="fas fa-gamepad text-orange-400 mr-1 text-sm"></i> PC GAMING</a>
+                <a href="#" class="px-3 py-1.5 rounded hover:bg-white/10 hover:text-yellow-300 transition whitespace-nowrap"><i class="fas fa-server text-indigo-300 mr-1 text-sm"></i> PC WORKSTATION</a>
+                <a href="#" class="px-3 py-1.5 rounded hover:bg-white/10 hover:text-yellow-300 transition whitespace-nowrap"><i class="fas fa-desktop text-pink-300 mr-1 text-sm"></i> PC VĂN PHÒNG</a>
+                <a href="#" class="px-3 py-1.5 rounded hover:bg-white/10 hover:text-yellow-300 transition whitespace-nowrap"><i class="fas fa-cogs text-green-300 mr-1 text-sm"></i> LINH KIỆN</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 z-[100] hidden lg:hidden">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleMobileMenu()"></div>
+        <div class="fixed top-0 left-0 bottom-0 w-[280px] bg-white shadow-2xl flex flex-col transform -translate-x-full transition-transform duration-300" id="mobile-menu-content">
+            <div class="bg-pcm-blue p-6 text-white flex justify-between items-center">
+                <span class="text-xl font-black">MENU</span>
+                <button onclick="toggleMobileMenu()" class="text-2xl"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto">
+                <div class="p-4 border-b bg-gray-50 text-xs font-bold text-gray-400 tracking-widest uppercase">Danh mục sản phẩm</div>
+                <ul class="py-2">
+                    @foreach(var cat in categories) {
+                        <li><a href="/Product/Category/@cat.MaDanhMuc" class="flex items-center px-6 py-3 hover:bg-blue-50 text-gray-700 font-semibold border-b border-gray-50"><i class="fas fa-chevron-right mr-3 text-pcm-blue text-[10px]"></i>@cat.TenDanhMuc</a></li>
+                    }
+                </ul>
+                <div class="p-4 border-b bg-gray-50 text-xs font-bold text-gray-400 tracking-widest uppercase">Thành viên</div>
+                <ul class="py-2">
+                    @if (Session["UserId"] != null) {
+                        <li><a href="/Account/Profile" class="flex items-center px-6 py-3 text-gray-700 font-semibold"><i class="fas fa-user-circle mr-3 text-pcm-blue"></i>Tài khoản</a></li>
+                        <li><a href="/Account/MyOrders" class="flex items-center px-6 py-3 text-gray-700 font-semibold"><i class="fas fa-box-open mr-3 text-pcm-blue"></i>Đơn hàng</a></li>
+                        <li><a href="/Account/Logout" class="flex items-center px-6 py-3 text-red-500 font-semibold"><i class="fas fa-sign-out-alt mr-3 text-red-500"></i>Đăng xuất</a></li>
+                    } else {
+                        <li><button onclick="toggleMobileMenu(); openAuthModal('login')" class="flex items-center w-full px-6 py-3 text-gray-700 font-semibold"><i class="fas fa-sign-in-alt mr-3 text-pcm-blue"></i>Đăng nhập</button></li>
+                        <li><button onclick="toggleMobileMenu(); openAuthModal('register')" class="flex items-center w-full px-6 py-3 text-gray-700 font-semibold"><i class="fas fa-user-plus mr-3 text-pcm-blue"></i>Đăng ký</button></li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow bg-gray-100 pb-12">
+        <div class="container mx-auto max-w-7xl pt-4 px-4 sm:px-0">
+            @RenderBody()
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t-4 border-pcm-blue mt-auto">
+        <div class="container mx-auto max-w-7xl px-4 py-10">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <!-- Col 1 -->
+                <div class="col-span-2 md:col-span-1">
+                    <h3 class="font-bold text-pcm-blue mb-4 uppercase text-[13px]">Về QuốcDoanhJr</h3>
+                    <ul class="space-y-2 text-[13px] text-gray-700 font-medium">
+                        <li><a href="#" class="hover:text-pcm-blue transition">Giới thiệu công ty</a></li>
+                        <li><a href="#" class="hover:text-pcm-blue transition">Thông tin liên hệ</a></li>
+                        <li><a href="#" class="hover:text-pcm-blue transition">Tin tức công nghệ</a></li>
+                    </ul>
+                    <div class="mt-6 flex space-x-2 text-sm justify-center md:justify-start">
+                        <a href="#" class="w-8 h-8 rounded-full bg-[#3b5998] text-white flex items-center justify-center hover:bg-blue-800 transition"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] text-white flex items-center justify-center hover:opacity-90 transition"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-[#ff0000] text-white flex items-center justify-center hover:bg-red-700 transition"><i class="fab fa-youtube"></i></a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-[#ee4d2d] text-white flex items-center justify-center hover:bg-orange-700 transition"><i class="fas fa-shopping-bag"></i></a>
+                    </div>
+                </div>
+
+                <!-- Col 2 -->
+                <div class="col-span-1">
+                    <h3 class="font-bold text-gray-800 mb-4 uppercase text-[13px]">Hỗ trợ</h3>
+                    <ul class="space-y-2 text-[13px] text-gray-700 font-medium">
+                        <li><a href="#" class="hover:text-pcm-blue transition">Mua hàng online</a></li>
+                        <li><a href="#" class="hover:text-pcm-blue transition">Thanh toán</a></li>
+                        <li><a href="#" class="hover:text-pcm-blue transition">Góp ý, Khiếu Nại</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 3 -->
+                <div class="col-span-1">
+                    <h3 class="font-bold text-gray-800 mb-4 uppercase text-[13px]">Chính sách</h3>
+                    <ul class="space-y-2 text-[13px] text-gray-700 font-medium">
+                        <li><a href="#" class="hover:text-pcm-blue transition">Vận chuyển</a></li>
+                        <li><a href="#" class="hover:text-pcm-blue transition">Bảo hành</a></li>
+                        <li><a href="#" class="hover:text-pcm-blue transition">Đổi trả</a></li>
+                        <li><a href="#" class="hover:text-pcm-blue transition">Bảo mật</a></li>
+                    </ul>
+                </div>
+
+                <!-- Col 4 -->
+                <div>
+                    <div class="flex justify-end mb-4">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4e/DATHONGBAO.png" alt="Bộ Công Thương" class="h-10 object-contain">
+                    </div>
+                    <div class="flex flex-wrap gap-3 items-center justify-end mt-4">
+                        <img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-ZaloPay-Square.png" alt="ZaloPay" class="h-6">
+                        <img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-MoMo-Transparent.png" alt="Momo" class="h-6">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" alt="Mastercard" class="h-6">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2000px-Visa_Inc._logo.svg.png" alt="Visa" class="h-4">
+                        <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418189687.png" alt="VNPay" class="h-5">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-[#f0f0f0] py-6">
+            <div class="container mx-auto max-w-7xl px-4 text-center text-[12px] text-gray-600 leading-relaxed font-medium">
+                <p class="font-bold uppercase text-gray-700 mb-1 tracking-wide">CÔNG TY TNHH QUỐC DOANH JR</p>
+                <p>Giấy phép ĐKKD số 0110441021 do Sở Kế hoạch và Đầu tư cấp lần đầu ngày 23/09/2026</p>
+                <p>Trụ sở: Việt Nam</p>
+                <p>Email: contact@quocdoanhjr.com | Tel: 0901 722 636</p>
+                <p class="mt-2 text-gray-500 text-[11px]">Copyright ©2026 QuốcDoanhJr - Hi-End Computer | Gaming Gear</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Fixed Buttons -->
+    <div class="fixed right-4 bottom-10 flex flex-col space-y-3 z-50">
+        <a href="#" class="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 hover:bg-blue-700 transition text-[22px] hover:-translate-y-1"><i class="fab fa-facebook-messenger"></i></a>
+        <a href="#" class="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 hover:bg-blue-600 transition text-[24px] hover:-translate-y-1 font-bold">Z</a>
+    </div>
+
+    @RenderSection("scripts", required: false)
+    
+    <!-- Custom Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Init SweetAlert Toast Function
+        const Toast = Swal.mixin({
+          toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true,
+          didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+          }
+        });
+    </script>
+    
+    <!-- ===== MODAL AUTH: LOGIN / REGISTER ===== -->
+    <div id="authModal" class="fixed inset-0 z-[200] hidden overflow-y-auto">
+        <div class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm" onclick="closeAuthModal()"></div>
+        <div class="min-h-screen px-4 text-center flex items-center justify-center">
+            <div class="inline-block w-full max-w-md bg-white rounded-2xl shadow-2xl text-left overflow-hidden transform scale-95 opacity-0 transition-all" id="authDialog">
+                <!-- Tabs -->
+                <div class="flex border-b border-gray-200">
+                    <button id="tab-login" onclick="switchTab('login')" class="flex-1 py-3.5 text-sm font-bold transition auth-tab border-b-2 border-pcm-blue text-pcm-blue">Đăng Nhập</button>
+                    <button id="tab-register" onclick="switchTab('register')" class="flex-1 py-3.5 text-sm font-bold transition auth-tab border-b-2 border-transparent text-gray-400 hover:text-gray-600">Đăng Ký</button>
+                    <button onclick="closeAuthModal()" class="px-4 text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+                </div>
+                
+                <!-- LOGIN FORM -->
+                <div id="loginPanel" class="p-6">
+                    <div class="text-center mb-5">
+                        <div class="w-14 h-14 bg-pcm-blue/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-user-circle text-3xl text-pcm-blue"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-800">Đăng nhập tài khoản</h2>
+                        <p class="text-gray-500 text-xs mt-1">Chào mừng quay lại QuốcDoanhJr!</p>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5">Email <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                <input type="email" id="loginEmail" placeholder="email@example.com" class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none" />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5">Mật khẩu <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                <input type="password" id="loginPassword" placeholder="Nhập mật khẩu..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none" />
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="doLogin()" id="btnLogin" class="mt-5 w-full bg-pcm-blue hover:bg-blue-800 text-white font-bold py-3 rounded-lg transition shadow-md shadow-pcm-blue/30 flex items-center justify-center">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Đăng nhập
+                    </button>
+                    <p class="text-center text-xs text-gray-500 mt-4">Chưa có tài khoản? <button onclick="switchTab('register')" class="text-pcm-blue font-bold hover:underline">Đăng ký ngay</button></p>
+                </div>
+                
+                <!-- REGISTER FORM -->
+                <div id="registerPanel" class="p-6 hidden">
+                    <div class="text-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">Tạo tài khoản mới</h2>
+                        <p class="text-gray-500 text-xs mt-1">Tham gia cộng đồng QuốcDoanhJr ngay hôm nay!</p>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Họ & Tên đầy đủ <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                <input type="text" id="regHoTen" placeholder="Nhập họ và tên..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue outline-none" required />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Email <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                <input type="email" id="regEmail" placeholder="email@example.com" class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue outline-none" required />
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Mật khẩu <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                    <input type="password" id="regPass" placeholder="Tối thiểu 6 ký tự" class="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue outline-none" required />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Xác nhận MK <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                    <input type="password" id="regConfirmPass" placeholder="Nhập lại mật khẩu" class="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue outline-none" required />
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <i class="fas fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                                <input type="tel" id="regPhone" placeholder="Số điện thoại liên hệ" class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue outline-none" required />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Địa chỉ <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <i class="fas fa-map-marker-alt absolute left-3 top-3.5 text-gray-400 text-sm"></i>
+                                <textarea id="regDiaChi" rows="2" placeholder="Địa chỉ nhận hàng của bạn..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue outline-none" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="doRegister()" id="btnRegister" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition shadow-md shadow-green-600/30 flex items-center justify-center">
+                        <i class="fas fa-user-plus mr-2"></i> Tạo tài khoản
+                    </button>
+                    <p class="text-center text-xs text-gray-500 mt-3">Đã có tài khoản? <button onclick="switchTab('login')" class="text-pcm-blue font-bold hover:underline">Đăng nhập</button></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ===== MODAL AUTH LOGIC =====
+        function openAuthModal(tab) {
+            document.getElementById('authModal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('authDialog').classList.remove('scale-95','opacity-0');
+                document.getElementById('authDialog').classList.add('scale-100','opacity-100');
+            }, 10);
+            switchTab(tab || 'login');
+        }
+        
+        function closeAuthModal() {
+            var d = document.getElementById('authDialog');
+            if(!d) return;
+            d.classList.remove('scale-100','opacity-100');
+            d.classList.add('scale-95','opacity-0');
+            setTimeout(() => document.getElementById('authModal').classList.add('hidden'), 200);
+        }
+        
+        function switchTab(tab) {
+            var isLogin = (tab === 'login');
+            document.getElementById('loginPanel').classList.toggle('hidden', !isLogin);
+            document.getElementById('registerPanel').classList.toggle('hidden', isLogin);
+            document.getElementById('tab-login').classList.toggle('border-pcm-blue', isLogin);
+            document.getElementById('tab-login').classList.toggle('text-pcm-blue', isLogin);
+            document.getElementById('tab-login').classList.toggle('border-transparent', !isLogin);
+            document.getElementById('tab-login').classList.toggle('text-gray-400', !isLogin);
+            document.getElementById('tab-register').classList.toggle('border-pcm-blue', !isLogin);
+            document.getElementById('tab-register').classList.toggle('text-pcm-blue', !isLogin);
+            document.getElementById('tab-register').classList.toggle('border-transparent', isLogin);
+            document.getElementById('tab-register').classList.toggle('text-gray-400', isLogin);
+        }
+        
+        function doLogin() {
+            var email = $('#loginEmail').val().trim();
+            var pass = $('#loginPassword').val();
+            if(!email || !pass) { Toast.fire({icon:'warning', title:'Vui lòng nhập Email và Mật khẩu!'}); return; }
+            
+            $('#btnLogin').prop('disabled',true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Đang xác thực...');
+            
+            $.post('/Account/Login', { email: email, password: pass }, function(res) {
+                if(res.success) {
+                    closeAuthModal();
+                    Toast.fire({icon:'success', title: res.message});
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    Swal.fire({icon:'error', title:'Đăng nhập thất bại', text: res.message});
+                    $('#btnLogin').prop('disabled',false).html('<i class="fas fa-sign-in-alt mr-2"></i> Đăng nhập');
+                }
+            });
+        }
+        
+        function doRegister() {
+            var data = {
+                hoTen: $('#regHoTen').val().trim(),
+                email: $('#regEmail').val().trim(),
+                password: $('#regPass').val(),
+                confirmPassword: $('#regConfirmPass').val(),
+                soDienThoai: $('#regPhone').val().trim(),
+                diaChi: $('#regDiaChi').val().trim()
+            };
+            
+            if(!data.hoTen || !data.email || !data.password || !data.soDienThoai || !data.diaChi) {
+                Toast.fire({icon:'warning', title:'Vui lòng điền đầy đủ thông tin bắt buộc!'});
+                return;
+            }
+            
+            $('#btnRegister').prop('disabled',true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Đang tạo tài khoản...');
+            
+            $.post('/Account/Register', data, function(res) {
+                if(res.success) {
+                    closeAuthModal();
+                    Toast.fire({icon:'success', title: res.message});
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    Swal.fire({icon:'error', title:'Đăng ký thất bại', text: res.message});
+                    $('#btnRegister').prop('disabled',false).html('<i class="fas fa-user-plus mr-2"></i> Tạo tài khoản');
+                }
+            });
+        }
+        
+        // ===== GLOBAL CART LOGIC =====
+        function addToCart(productId, quantity = 1) {
+            $.post('/Cart/AddToCart', { productId: productId, quantity: quantity }, function(res) {
+                if(res.success) {
+                    Toast.fire({icon: 'success', title: res.message});
+                    updateCartBadge(res.cartCount);
+                } else if(res.requireLogin) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Chưa đăng nhập',
+                        text: res.message,
+                        showCancelButton: true,
+                        confirmButtonText: 'Đăng nhập ngay',
+                        cancelButtonText: 'Hủy',
+                        confirmButtonColor: '#007cc2'
+                    }).then(r => { if(r.isConfirmed) openAuthModal('login'); });
+                } else {
+                    Swal.fire({icon: 'error', title: 'Lỗi', text: res.message});
+                }
+            });
+        }
+
+        function updateCartBadge(count) {
+            const badge = document.getElementById('cart-badge');
+            if(badge) badge.textContent = count;
+        }
+
+        function loadCartCount() {
+            $.get('/Cart/GetCartCount', function(res) {
+                updateCartBadge(res.count);
+            });
+        }
+
+        // Init on Load
+        $(document).ready(function() {
+            loadCartCount();
+
+            // Handle URL Parameters for Auth (Fix 404 GET Account/Login...)
+            const urlParams = new URLSearchParams(window.location.search);
+            const authParam = urlParams.get('auth');
+            if (authParam === 'login' || authParam === 'register') {
+                openAuthModal(authParam);
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if(e.key === 'Escape') closeAuthModal();
+        });
+    </script>
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const content = document.getElementById('mobile-menu-content');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                setTimeout(() => {
+                    content.classList.remove('-translate-x-full');
+                }, 10);
+            } else {
+                content.classList.add('-translate-x-full');
+                setTimeout(() => {
+                    menu.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        // Cập nhật số lượng giỏ hàng
+        function updateCartBadges(count) {
+            const b1 = document.getElementById('cart-badge');
+            const b2 = document.getElementById('cart-badge-mobile');
+            if (b1) b1.textContent = count;
+            if (b2) b2.textContent = count;
+        }
+
+        // Load sync ban đầu
+        fetch('/Cart/GetCartCount')
+            .then(res => res.json())
+            .then(data => updateCartBadges(data.count))
+            .catch(() => {});
+    </script>
+</body>
+</html>

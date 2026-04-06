@@ -1,0 +1,230 @@
+@model IEnumerable<Doanh2026.Models.DanhMuc>
+@{
+    ViewBag.Title = "Quản lý Danh Mục";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="mb-6 flex flex-col sm:flex-row justify-between sm:items-center p-1">
+    <div>
+        <h1 class="text-2xl font-bold text-slate-800">Quản lý Danh Mục</h1>
+        <p class="text-xs text-slate-500 mt-1">Danh sách các danh mục sản phẩm hiện có</p>
+    </div>
+    <div class="mt-4 sm:mt-0 flex gap-2">
+        <!-- Nút gọi Modal Thêm -->
+        <button onclick="openModal('create')" class="bg-pcm-blue text-white px-4 py-2 rounded-md text-xs font-semibold shadow-md shadow-pcm-blue/20 hover:bg-blue-700 transition flex items-center">
+            <i class="fas fa-plus mr-1.5"></i> Thêm danh mục
+        </button>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+    <!-- Header Search -->
+    <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+        <form action="/AdminCategory/Index" method="get" class="relative">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" name="searchString" value="@ViewBag.SearchString" placeholder="Tìm danh mục..." class="pl-10 pr-4 py-2 border border-slate-200 rounded-md text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none w-[250px]" />
+            <button type="submit" class="hidden"></button>
+        </form>
+    </div>
+
+    <!-- Table content -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider">
+                    <th class="py-3 px-5 font-bold w-20">Mã DM</th>
+                    <th class="py-3 px-5 font-bold">Tên Danh Mục</th>
+                    <th class="py-3 px-5 font-bold">Mô Tả</th>
+                    <th class="py-3 px-5 font-bold text-center w-32">Số Sản Phẩm</th>
+                    <th class="py-3 px-5 font-bold text-center w-28">Hành động</th>
+                </tr>
+            </thead>
+            <tbody class="text-[13px] text-slate-700 divide-y divide-slate-100">
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr class="hover:bg-slate-50 transition group">
+                            <td class="py-3 px-5 font-bold text-slate-800 border-l-2 border-transparent group-hover:border-pcm-blue">#@item.MaDanhMuc</td>
+                            <td class="py-3 px-5 font-semibold text-pcm-blue">@item.TenDanhMuc</td>
+                            <td class="py-3 px-5 truncate max-w-[200px]" title="@item.MoTa">@(string.IsNullOrEmpty(item.MoTa) ? "---" : item.MoTa)</td>
+                            <td class="py-3 px-5 text-center font-medium">
+                                <span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full text-xs">@(item.SanPhams?.Count ?? 0)</span>
+                            </td>
+                            <td class="py-3 px-5 text-center space-x-1">
+                                <button onclick="openModal('edit', @item.MaDanhMuc)" class="inline-flex w-7 h-7 items-center justify-center rounded bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white transition" title="Sửa">
+                                    <i class="fas fa-edit text-xs"></i>
+                                </button>
+                                <button onclick="deleteCategory(@item.MaDanhMuc, '@item.TenDanhMuc')" class="inline-flex w-7 h-7 items-center justify-center rounded bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white transition" title="Xóa">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-slate-400 font-medium">
+                            <i class="fas fa-folder-open text-3xl mb-2 text-slate-300 block"></i> Chưa có danh mục nào!
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- COMMON MODAL FORM -->
+<div id="categoryModal" class="fixed inset-0 z-[100] hidden">
+    <!-- Overlay backdrop -->
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+    
+    <!-- Modal panel -->
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-xl shadow-2xl p-6 transition-all scale-95 opacity-0" id="modalDialog">
+        <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">
+            <h3 class="text-lg font-bold text-slate-800" id="modalTitle">Thêm Danh Mục Mới</h3>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 transition"><i class="fas fa-times"></i></button>
+        </div>
+
+        <form id="categoryForm" onsubmit="submitForm(event)">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="MaDanhMuc" name="MaDanhMuc" value="0" />
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Tên danh mục <span class="text-red-500">*</span></label>
+                    <input type="text" id="TenDanhMuc" name="TenDanhMuc" required class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none" placeholder="VD: Laptop Gaming..." />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Mô tả</label>
+                    <textarea id="MoTa" name="MoTa" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-2">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-md text-sm font-medium hover:bg-slate-50 transition">Hủy</button>
+                <button type="submit" id="btnSubmit" class="bg-pcm-blue text-white px-4 py-2 rounded-md text-sm font-bold shadow-md shadow-pcm-blue/20 hover:bg-blue-700 transition flex items-center">
+                    <i class="fas fa-save mr-2"></i> <span>Lưu lại</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // Animation Tailwind class toggles
+    const modal = document.getElementById('categoryModal');
+    const dialog = document.getElementById('modalDialog');
+    const form = document.getElementById('categoryForm');
+    const title = document.getElementById('modalTitle');
+    let currentMode = 'create';
+
+    function openModal(mode, id = 0) {
+        currentMode = mode;
+        form.reset();
+        $('#MaDanhMuc').val(0);
+        
+        if (mode === 'create') {
+            title.innerText = 'Thêm Danh Mục Mới';
+            $('#btnSubmit span').text('Thêm danh mục');
+            $('#btnSubmit').removeClass('bg-amber-500 hover:bg-amber-600 shadow-amber-500/20');
+            $('#btnSubmit').addClass('bg-pcm-blue hover:bg-blue-700 shadow-pcm-blue/20');
+            showModal();
+        } else {
+            title.innerText = 'Cập nhật Danh Mục';
+            $('#btnSubmit span').text('Lưu thay đổi');
+            $('#btnSubmit').removeClass('bg-pcm-blue hover:bg-blue-700 shadow-pcm-blue/20');
+            $('#btnSubmit').addClass('bg-amber-500 hover:bg-amber-600 shadow-amber-500/20');
+            
+            // Xử lý lấy data bằng AJAX
+            $.get('/AdminCategory/GetCategory/' + id, function(res) {
+                if(res.success) {
+                    $('#MaDanhMuc').val(res.data.MaDanhMuc);
+                    $('#TenDanhMuc').val(res.data.TenDanhMuc);
+                    $('#MoTa').val(res.data.MoTa);
+                    showModal();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                }
+            });
+        }
+    }
+
+    function showModal() {
+        modal.classList.remove('hidden');
+        // setTimeout for transition effect
+        setTimeout(() => {
+            dialog.classList.remove('scale-95', 'opacity-0');
+            dialog.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeModal() {
+        dialog.classList.remove('scale-100', 'opacity-100');
+        dialog.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+
+    function submitForm(e) {
+        e.preventDefault();
+        
+        let url = currentMode === 'create' ? '/AdminCategory/Create' : '/AdminCategory/Edit';
+        let data = $(form).serialize();
+        
+        // Disable button
+        $('#btnSubmit').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i> Ä ang xử lý...');
+
+        $.post(url, data, function(res) {
+            if (res.success) {
+                closeModal();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công',
+                    text: res.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                $('#btnSubmit').prop('disabled', false).html('<i class="fas fa-save mr-2"></i> <span>Thử lại</span>');
+            }
+        });
+    }
+
+    function deleteCategory(id, name) {
+        Swal.fire({
+            title: 'Xóa danh mục?',
+            html: `Bạn có chắc chắn muốn xóa danh mục <b>${name}</b>?<br/>\n<i>Hành động này không thể hoàn tác!</i>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Có, Xóa ngay!',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('/AdminCategory/Delete/' + id, function(res) {
+                    if (res.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã xóa!',
+                            text: res.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Không thể xóa', text: res.message });
+                    }
+                });
+            }
+        })
+    }
+</script>

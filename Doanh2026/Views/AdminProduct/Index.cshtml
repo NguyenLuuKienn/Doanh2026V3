@@ -1,0 +1,438 @@
+@model IEnumerable<Doanh2026.Models.SanPham>
+@{
+    ViewBag.Title = "Quản lý sản phẩm";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="mb-6 flex flex-col sm:flex-row justify-between sm:items-center p-1">
+    <div>
+        <h1 class="text-2xl font-bold text-slate-800">Quản lý Sản phẩm</h1>
+        <p class="text-xs text-slate-500 mt-1">Danh sách tất cả sản phẩm đang kinh doanh trên hệ thống.</p>
+    </div>
+    <div class="mt-4 sm:mt-0 flex gap-2">
+        <!-- Nút gọi Modal Thêm -->
+        <button onclick="openModal('create')" class="bg-pcm-blue text-white px-4 py-2 rounded-md text-xs font-semibold shadow-md shadow-pcm-blue/20 hover:bg-blue-700 transition flex items-center">
+            <i class="fas fa-plus mr-1.5"></i> Thêm sản phẩm mới
+        </button>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+        <form action="/AdminProduct/Index" method="get" class="relative">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" name="searchString" value="@ViewBag.SearchString" placeholder="Tìm tên sản phẩm..." class="pl-10 pr-4 py-2 border border-slate-200 rounded-md text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none w-[250px]" />
+            <button type="submit" class="hidden"></button>
+        </form>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider">
+                    <th class="py-3 px-5 font-bold">Mã SP</th>
+                    <th class="py-3 px-5 font-bold">Thao tác</th>
+                    <th class="py-3 px-5 font-bold">Hình ảnh</th>
+                    <th class="py-3 px-5 font-bold">Tên sản phẩm</th>
+                    <th class="py-3 px-5 font-bold">Danh mục</th>
+                    <th class="py-3 px-5 font-bold text-right">Giá bán</th>
+                    <th class="py-3 px-5 font-bold text-center">Tồn kho</th>
+                </tr>
+            </thead>
+            <tbody class="text-[13px] text-slate-700 divide-y divide-slate-100">
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr class="hover:bg-slate-50 transition group">
+                            <td class="py-3 px-5 font-bold text-slate-800 border-l-2 border-transparent group-hover:border-pcm-blue">#@item.MaSanPham</td>
+                            <td class="py-3 px-5 text-center space-x-1">
+                                <button onclick="openModal('edit', @item.MaSanPham)" class="inline-flex w-7 h-7 items-center justify-center rounded bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white transition" title="Sửa">
+                                    <i class="fas fa-edit text-xs"></i>
+                                </button>
+                                <button onclick="deleteProduct(@item.MaSanPham, '@item.TenSanPham')" class="inline-flex w-7 h-7 items-center justify-center rounded bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white transition" title="Xóa">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </td>
+                            <td class="py-3 px-5">
+                                <img src="@(item.HinhAnhSanPhams?.FirstOrDefault(h => h.LaAnhDaiDien == true)?.DuongDanAnh ?? "https://pcmarket.vn/media/product/250-250_7169_pc_amd_gaming_ryzen_5_7500f_rtx_5060.jpg")" class="w-12 h-12 object-contain border border-slate-100 rounded bg-white p-1" />
+                            </td>
+                            <td class="py-3 px-5 font-semibold text-pcm-blue max-w-[250px] truncate" title="@item.TenSanPham">@item.TenSanPham</td>
+                            <td class="py-3 px-5">
+                                <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-medium">@(item.DanhMuc?.TenDanhMuc ?? "Khác")</span>
+                            </td>
+                            <td class="py-3 px-5 font-bold text-right text-red-500">
+                                @((item.GiaUuDai ?? item.GiaGoc).ToString("N0"))<sup class="text-[10px] font-normal">đ</sup>
+                            </td>
+                            <td class="py-3 px-5 text-center">
+                                @if(item.SoLuongTon > 0) {
+                                    <span class="text-green-600 font-bold">@item.SoLuongTon</span>
+                                } else {
+                                    <span class="text-red-500 text-xs font-bold uppercase">Hết hàng</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-400 font-medium">
+                            <i class="fas fa-box-open text-3xl mb-2 text-slate-300 block"></i> Không tìm thấy sản phẩm nào !
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL PRODUCT CRUD -->
+<div id="productModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
+    <!-- Overlay -->
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+    
+    <!-- Modal Content -->
+    <div class="min-h-screen px-4 text-center flex items-center justify-center pointer-events-none">
+        <div class="inline-block w-full max-w-4xl bg-white rounded-xl shadow-2xl text-left overflow-hidden transform scale-95 opacity-0 transition-all pointer-events-auto my-8" id="modalDialog">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <h3 class="text-lg font-bold text-slate-800" id="modalTitle">Thêm Sản Phẩm Mới</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+            </div>
+
+            <form id="productForm" onsubmit="submitForm(event)" class="p-6">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="MaSanPham" name="MaSanPham" value="0" />
+                <input type="hidden" id="ThongSoKyThuat" name="ThongSoKyThuat" value="" />
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Khu vực nhập liệu cơ bản -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Tên sản phẩm <span class="text-red-500">*</span></label>
+                            <input type="text" id="TenSanPham" name="TenSanPham" required class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none" />
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Danh mục <span class="text-red-500">*</span></label>
+                            @Html.DropDownList("MaDanhMuc", (SelectList)ViewBag.MaDanhMuc, "--- Chọn danh mục ---", htmlAttributes: new { @class = "w-full px-3 py-2 border border-slate-200 bg-white rounded-md text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none", required = "required" })
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Giá gốc (VNĐ) <span class="text-red-500">*</span></label>
+                                <input type="number" id="GiaGoc" name="GiaGoc" required min="0" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Giá khuyến mãi (VNĐ)</label>
+                                <input type="number" id="GiaUuDai" name="GiaUuDai" min="0" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none" />
+                            </div>
+                        </div>
+
+                        <!-- Tồn kho -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Số lượng tồn kho <span class="text-red-500">*</span></label>
+                            <input type="number" id="SoLuongTon" name="SoLuongTon" required min="0" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none text-center font-bold" />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Tải lên hình ảnh (Nhiều ảnh)</label>
+                            <input type="file" id="ImageFiles" name="ImageFiles" multiple accept="image/*" onchange="previewImages(event)" class="w-full px-3 py-1.5 border border-dashed border-slate-300 rounded-md text-sm focus:border-pcm-blue outline-none cursor-pointer bg-slate-50 hover:bg-slate-100 transition" />
+                            <p class="text-[10px] text-gray-500 mt-1 italic">Tải lên ít nhất 1 hình. Ảnh đầu tiên sẽ được đặt làm Ảnh Đại Diện.</p>
+                            <!-- Preview Grid -->
+                            <div id="imagePreviewGrid" class="mt-2 grid grid-cols-4 gap-2 hidden"></div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">Mô tả sản phẩm (Chi tiết & Tính năng)</label>
+                            <textarea id="MoTa" name="MoTa" rows="10" placeholder="Viết nội dung mô tả sản phẩm..." class="w-full"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Khu vực nhập Thông số kỹ thuật DYNAMIC -->
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col h-full">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="block text-xs font-bold text-slate-700 uppercase"><i class="fas fa-cogs mr-1 text-slate-400"></i> Thông số kỹ thuật</label>
+                            <button type="button" onclick="addSpecRow()" class="text-[11px] bg-slate-200 hover:bg-pcm-blue hover:text-white text-slate-700 px-2.5 py-1 rounded transition font-semibold">
+                                <i class="fas fa-plus mr-1"></i> Thêm dòng
+                            </button>
+                        </div>
+                        
+                        <!-- List Specs -->
+                        <div id="specsContainer" class="space-y-2 overflow-y-auto max-h-[300px] pr-1 flex-1">
+                            <!-- JS will inject rows here -->
+                        </div>
+                        
+                        <p class="text-[10px] text-slate-400 mt-4 italic text-center">Các dòng trống sẽ tự động bị loại bỏ khi lưu.</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-5 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal()" class="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-md text-sm font-medium hover:bg-slate-50 transition">Đóng</button>
+                    <button type="submit" id="btnSubmit" class="bg-pcm-blue text-white px-6 py-2.5 rounded-md text-sm font-bold shadow-md shadow-pcm-blue/20 hover:bg-blue-800 transition flex items-center">
+                        <i class="fas fa-save mr-2"></i> <span>Lưu Sản Phẩm</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- CKEditor 4.25.1 LTS - Nâng cấp v4.22 lỗi bảo mật -->
+<script src="https://cdn.ckeditor.com/4.25.1-lts/standard/ckeditor.js"></script>
+<script>
+    const modal = document.getElementById('productModal');
+    const dialog = document.getElementById('modalDialog');
+    const form = document.getElementById('productForm');
+    const title = document.getElementById('modalTitle');
+    const specsContainer = document.getElementById('specsContainer');
+    let currentMode = 'create';
+    let editorInstance = null;
+
+    $(document).ready(function() {
+        // Init CKEditor khi trang load xong
+        editorInstance = CKEDITOR.replace('MoTa', {
+            versionCheck: false, // Tắt cảnh báo upgrade version của CKEditor
+            height: 250,
+            toolbar: [
+                ['Bold', 'Italic', 'Underline', 'Strike', '-', 'RemoveFormat'],
+                ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent'],
+                ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
+                ['Link', 'Unlink', 'Image', 'Table', 'HorizontalRule', 'SpecialChar'],
+                ['Styles', 'Format', 'Font', 'FontSize'],
+                ['TextColor', 'BGColor'],
+                ['Maximize', 'Source']
+            ],
+            // Bật Allow HTML
+            allowedContent: true
+        });
+    });
+
+    // SPECS DYNAMIC UI LOGIC
+    function addSpecRow(key = '', value = '') {
+        const rowId = 'spec_' + Date.now() + Math.floor(Math.random() * 100);
+        const rowHtml = `
+            <div class="flex gap-2 items-center spec-row" id="${rowId}">
+                <div class="w-[35%]">
+                    <input type="text" placeholder="Key (VD: CPU)" value="${key}" class="spec-key w-full px-2 py-1.5 border border-slate-200 rounded text-xs focus:border-blue-400 outline-none font-medium text-slate-700" />
+                </div>
+                <div class="flex-1 relative">
+                    <input type="text" placeholder="Value (VD: Intel Core i9)" value="${value}" class="spec-value w-full pl-2 pr-8 py-1.5 border border-slate-200 rounded text-xs focus:border-blue-400 outline-none text-slate-600" />
+                    <button type="button" onclick="document.getElementById('${rowId}').remove()" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 transition">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        specsContainer.insertAdjacentHTML('beforeend', rowHtml);
+    }
+
+    // Build JSON String từ Array Inputs để gắn vào Input Hidden #ThongSoKyThuat gửi về Server
+    function buildSpecsJson() {
+        let specsObj = {};
+        let count = 0;
+        document.querySelectorAll('.spec-row').forEach(row => {
+            const k = row.querySelector('.spec-key').value.trim();
+            const v = row.querySelector('.spec-value').value.trim();
+            if(k !== '' && v !== '') {
+                specsObj[k] = v;
+                count++;
+            }
+        });
+        
+        // Return string json rỗng nếu ko có data để DB lưu null hoặc chuỗi rỗng
+        return count > 0 ? JSON.stringify(specsObj) : "";
+    }
+
+    // Decode JSON String từ DB để hiển thị ra UI Inputs
+    function renderSpecsFromJson(jsonString) {
+        specsContainer.innerHTML = ''; // reset
+        if(!jsonString || jsonString.trim() === '') {
+            // Thêm sẵn 1 dòng trống cho thân thiện
+            addSpecRow();
+            return;
+        }
+        
+        try {
+            const obj = JSON.parse(jsonString);
+            for(const [key, val] of Object.entries(obj)) {
+                addSpecRow(key, val);
+            }
+        } catch(e) {
+            console.error("Lỗi parse Specs JSON: ", e);
+            // Dữ liệu cũ ko phải JSON -> Render nguyên chuỗi text cũ vào 1 dòng key 'Đặc điểm'
+            addSpecRow('Đặc điểm', jsonString);
+        }
+    }
+
+    // MODAL STATE LOGIC
+    function openModal(mode, id = 0) {
+        currentMode = mode;
+        form.reset();
+        $('#MaSanPham').val(0);
+        specsContainer.innerHTML = ''; // Clean Specs
+        clearImagePreview(); // Clear preview khi mở modal mới
+        
+        if (mode === 'create') {
+            title.innerText = 'Thêm Sản Phẩm Mới';
+            $('#btnSubmit span').text('Thêm Sản Phẩm');
+            $('#btnSubmit').removeClass('bg-amber-500 hover:bg-amber-600 shadow-amber-500/20').addClass('bg-pcm-blue hover:bg-blue-800 shadow-pcm-blue/20');
+            
+            // Render default empty rows
+            addSpecRow('CPU', ''); addSpecRow('RAM', ''); addSpecRow('Ổ cứng', '');
+            showModal();
+        } else {
+            title.innerText = 'Cập nhật Sản Phẩm #' + id;
+            $('#btnSubmit span').text('Lưu Cập Nhật');
+            $('#btnSubmit').removeClass('bg-pcm-blue hover:bg-blue-800 shadow-pcm-blue/20').addClass('bg-amber-500 hover:bg-amber-600 shadow-amber-500/20');
+            
+            // Xử lý lấy data bằng AJAX
+            $.get('/AdminProduct/GetProduct/' + id, function(res) {
+                if(res.success) {
+                    $('#MaSanPham').val(res.data.MaSanPham);
+                    $('#TenSanPham').val(res.data.TenSanPham);
+                    $('#MaDanhMuc').val(res.data.MaDanhMuc);
+                    $('#GiaGoc').val(res.data.GiaGoc);
+                    $('#GiaUuDai').val(res.data.GiaUuDai);
+                    $('#SoLuongTon').val(res.data.SoLuongTon);
+                    // Update Editor Content
+                    if(editorInstance) {
+                        editorInstance.setData(res.data.MoTa || '');
+                    } else {
+                        $('#MoTa').val(res.data.MoTa);
+                    }
+                    
+                    // Render UI logic for ThongSoKyThuat (JSON)
+                    renderSpecsFromJson(res.data.ThongSoKyThuat);
+                    
+                    showModal();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                }
+            });
+        }
+    }
+
+    function showModal() {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            dialog.classList.remove('scale-95', 'opacity-0');
+            dialog.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeModal() {
+        dialog.classList.remove('scale-100', 'opacity-100');
+        dialog.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+
+    function submitForm(e) {
+        e.preventDefault();
+        
+        // Cập nhật lại Textarea MoTa từ Editor trước khi Build Form
+        if(editorInstance) {
+            $('#MoTa').val(editorInstance.getData());
+        }
+
+        // 1. Build string JSON Specs & gán vào form
+        $('#ThongSoKyThuat').val(buildSpecsJson());
+        
+        // 2. Validate
+        if($('#MaDanhMuc').val() === '') {
+            Swal.fire({icon: 'warning', title: 'Chưa chọn danh mục'});
+            return;
+        }
+
+        let url = currentMode === 'create' ? '/AdminProduct/Create' : '/AdminProduct/Edit';
+        
+        // Sử dụng FormData để hỗ trợ upload nhiều ảnh File
+        let formData = new FormData(form);
+        
+        // Thêm AntiForgeryToken vào FormData thủ công (do contentType: false)
+        let token = $('input[name="__RequestVerificationToken"]').val();
+        if(token) formData.set('__RequestVerificationToken', token);
+        
+        $('#btnSubmit').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i> Đang lưu...');
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: { '__RequestVerificationToken': token },
+            success: function(res) {
+                if (res.success) {
+                    closeModal();
+                    Swal.fire({
+                        icon: 'success', title: 'Thành công', text: res.message, timer: 1500, showConfirmButton: false
+                    }).then(() => { window.location.reload(); });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                    $('#btnSubmit').prop('disabled', false).html('<i class="fas fa-save mr-2"></i> <span>Tạo lại</span>');
+                }
+            },
+            error: function(err) {
+                Swal.fire({ icon: 'error', title: 'Lỗi Server', text: 'Vui lòng kiểm tra Console log hoặc Server error!'});
+                $('#btnSubmit').prop('disabled', false).html('<i class="fas fa-save mr-2"></i> <span>Lưu Lại</span>');
+            }
+        });
+    }
+
+    function deleteProduct(id, name) {
+        Swal.fire({
+            title: 'Chắc chắn xóa?',
+            html: `Sản phẩm <b>${name}</b> sẽ bị xóa khỏi hệ thống. <br/>Dữ liệu không thể phục hồi!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Đồng ý xóa',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('/AdminProduct/Delete/' + id, function(res) {
+                    if (res.success) {
+                        Swal.fire({
+                            icon: 'success', title: 'Đã xóa!', text: res.message, timer: 1500, showConfirmButton: false
+                        }).then(() => { window.location.reload(); });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                    }
+                });
+            }
+        })
+    }
+
+    // PREVIEW ẢNH KHI CHỌN FILE
+    function previewImages(event) {
+        const files = event.target.files;
+        const grid = document.getElementById('imagePreviewGrid');
+        grid.innerHTML = '';
+        
+        if(files.length === 0) { grid.classList.add('hidden'); return; }
+        grid.classList.remove('hidden');
+        
+        Array.from(files).forEach((file, idx) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative';
+                wrapper.innerHTML = `
+                    <img src="${e.target.result}" class="w-full aspect-square object-cover rounded-md border-2 ${idx === 0 ? 'border-pcm-blue' : 'border-slate-200'}" />
+                    ${idx === 0 ? '<span class="absolute top-1 left-1 bg-pcm-blue text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">Đại diện</span>' : ''}
+                `;
+                grid.appendChild(wrapper);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function clearImagePreview() {
+        const grid = document.getElementById('imagePreviewGrid');
+        if(grid) { grid.innerHTML = ''; grid.classList.add('hidden'); }
+    }
+</script>

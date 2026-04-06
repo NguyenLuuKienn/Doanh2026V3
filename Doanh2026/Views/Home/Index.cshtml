@@ -1,0 +1,153 @@
+@model IEnumerable<Doanh2026.Models.SanPham>
+@{
+    ViewBag.Title = "Trang chủ";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+    var hotSales = ViewBag.HotSales as List<Doanh2026.Models.SanPham> ?? new List<Doanh2026.Models.SanPham>();
+    var pcGaming = ViewBag.PCGaming as List<Doanh2026.Models.SanPham> ?? new List<Doanh2026.Models.SanPham>();
+}
+
+<!-- Banner Section -->
+<div class="mb-6 mt-2 relative overflow-hidden rounded-lg shadow-sm">
+    <img src="~/Content/Images/PCM-061.jpg" alt="Banner Khuyến Mãi" class="w-full object-cover h-[250px] md:h-[350px]">
+    
+    <!-- Controls (mock) -->
+    <button class="absolute left-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-white/40 hover:bg-white/70 rounded-full flex items-center justify-center text-gray-800 transition shadow">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <button class="absolute right-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-white/40 hover:bg-white/70 rounded-full flex items-center justify-center text-gray-800 transition shadow">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    
+    <!-- Indicators -->
+    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+        <div class="w-8 h-2 bg-white rounded-full"></div>
+        <div class="w-2 h-2 bg-white/50 rounded-full"></div>
+        <div class="w-2 h-2 bg-white/50 rounded-full"></div>
+        <div class="w-2 h-2 bg-white/50 rounded-full"></div>
+    </div>
+</div>
+
+<!-- Hot Sale Section -->
+<div class="bg-[#d52b36] rounded-md p-3 mb-8 shadow">
+    <div class="flex justify-between items-center mb-4 px-2">
+        <h2 class="text-white text-[22px] font-black uppercase flex items-center tracking-tight"><i class="fas fa-fire mr-2 text-yellow-300 text-2xl animate-pulse"></i> HOT SALE MỖI NGÀY</h2>
+        <div class="hidden md:flex space-x-2">
+            <button class="bg-yellow-400 hover:bg-yellow-300 text-gray-800 px-3 py-1.5 font-bold text-[11px] uppercase rounded shadow-sm transition">SIÊU KHUYẾN MẠI PC GAMING 2026</button>
+            <button class="bg-white hover:bg-gray-100 text-gray-800 px-3 py-1.5 font-bold text-[11px] uppercase rounded shadow-sm transition">Top Linh Kiện PC Sale Sốc</button>
+        </div>
+    </div>
+
+    <div class="bg-white rounded p-1 mb-2">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-1">
+            @if (hotSales.Count == 0)
+            {
+                <div class="col-span-2 md:col-span-5 py-6 text-center text-white/80 font-medium">
+                    <i class="fas fa-boxes text-3xl mb-2 opacity-50 block"></i>
+                    Sản phẩm đang được cập nhật...
+                </div>
+            }
+            else
+            {
+                foreach (var sp in hotSales)
+                {
+                    var price = sp.GiaUuDai ?? sp.GiaGoc;
+                    var oldPrice = sp.GiaGoc;
+                    var percent = oldPrice > 0 && price < oldPrice ? (int)((oldPrice - price) / oldPrice * 100) : 0;
+                    
+                    <div class="p-3 hover:shadow-lg transition bg-white relative group rounded border border-transparent hover:border-blue-200">
+                        @if (percent > 0)
+                        {
+                            <span class="absolute top-2 left-2 bg-[#d82d8b] text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm z-10">-@percent%</span>
+                        }
+                        
+                        <a href="/Product/Details/@sp.MaSanPham">
+                            <img src="@(sp.HinhAnhSanPhams.FirstOrDefault(h => h.LaAnhDaiDien == true)?.DuongDanAnh ?? "https://pcmarket.vn/media/product/250-250_7169_pc_amd_gaming_ryzen_5_7500f_rtx_5060.jpg")" alt="@sp.TenSanPham" class="w-full h-[160px] object-contain mb-3 group-hover:-translate-y-1 group-hover:scale-105 transition duration-300">
+                            <h3 class="text-[12px] font-bold text-gray-700 mb-2 leading-tight h-[36px] overflow-hidden group-hover:text-pcm-blue transition uppercase">@sp.TenSanPham</h3>
+                        </a>
+                        
+                        <div class="flex flex-col mb-1 relative">
+                            <span class="text-red-600 font-bold text-[15px]">@price.ToString("N0") VNĐ</span>
+                            @if (price < oldPrice)
+                            {
+                                <span class="line-through text-gray-500 text-[11px]">@oldPrice.ToString("N0") VNĐ</span>
+                            }
+                            else {
+                                <span class="text-transparent text-[11px]">-</span>
+                            }
+                            
+                            <button onclick="addToCart(@sp.MaSanPham)" class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-pcm-blue text-white flex items-center justify-center hover:bg-blue-800 shadow-sm transition opacity-0 group-hover:opacity-100">
+                                <i class="fas fa-cart-plus text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+    
+    <div class="text-center mt-3">
+        <a href="#" class="text-white hover:text-yellow-200 text-sm font-semibold transition">Xem tất cả +</a>
+    </div>
+</div>
+
+<!-- PC GAMING Category -->
+<div class="bg-white rounded-md mb-8 border border-gray-200 shadow-sm overflow-hidden">
+    <div class="flex flex-wrap md:flex-nowrap justify-between items-center border-b-[3px] border-pcm-blue pr-4 bg-gray-50">
+        <div class="bg-pcm-blue text-white py-2.5 px-6 font-bold text-[16px] uppercase relative z-10" style="clip-path: polygon(0 0, 95% 0, 100% 100%, 0% 100%); padding-right: 40px;">
+            PC GAMING, STREAMING
+        </div>
+        <div class="hidden md:flex flex-wrap space-x-4 text-[11px] font-bold text-gray-600 mt-2 md:mt-0 uppercase items-center">
+            <a href="#" class="hover:text-pcm-blue transition border-r pr-4 border-gray-300">Máy tính chơi game PCM</a>
+            <a href="#" class="hover:text-pcm-blue transition border-r pr-4 border-gray-300">PC Core Ultra</a>
+            <a href="#" class="hover:text-pcm-blue transition border-r pr-4 border-gray-300">PC STREAMER, YOUTUBER</a>
+            <a href="#" class="hover:text-pcm-blue transition border-r pr-4 border-gray-300">PC GAMING DDR5</a>
+            <a href="#" class="text-pcm-blue hover:underline font-bold flex items-center"><i class="fas fa-plus mr-1"></i> Xem tất cả</a>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-0 divide-x divide-y md:divide-y-0 divide-gray-100 p-1">
+        @if (pcGaming.Count == 0)
+        {
+            <div class="col-span-2 md:col-span-5 py-8 text-center text-gray-400 font-medium bg-white">
+                <i class="fas fa-desktop text-3xl mb-2 opacity-30 block"></i>
+                Danh mục này đang trống. Xin quay lại sau!
+            </div>
+        }
+        else
+        {
+            foreach (var sp in pcGaming)
+            {
+                var price = sp.GiaUuDai ?? sp.GiaGoc;
+                var oldPrice = sp.GiaGoc;
+                var percent = oldPrice > 0 && price < oldPrice ? (int)((oldPrice - price) / oldPrice * 100) : 0;
+                
+                <div class="p-4 hover:shadow-xl transition bg-white relative group">
+                    @if (percent > 0)
+                    {
+                        <span class="absolute top-3 left-3 bg-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm z-10">-@percent%</span>
+                    }
+                    
+                    <a href="/Product/Details/@sp.MaSanPham">
+                        <img src="@(sp.HinhAnhSanPhams.FirstOrDefault()?.DuongDanAnh ?? "https://pcmarket.vn/media/product/250-250_7169_pc_amd_gaming_ryzen_5_7500f_rtx_5060.jpg")" alt="@sp.TenSanPham" class="w-full h-[170px] object-contain mb-4 group-hover:-translate-y-1 transition duration-300">
+                        <h3 class="text-[12px] font-bold text-gray-700 mb-2 leading-tight h-[36px] overflow-hidden group-hover:text-pcm-blue transition uppercase">@sp.TenSanPham</h3>
+                    </a>
+                    
+                    <div class="flex flex-col mb-1 relative">
+                        <span class="text-red-600 font-bold text-[15px]">@price.ToString("N0") VNĐ</span>
+                        @if (price < oldPrice)
+                        {
+                            <span class="line-through text-gray-500 text-[11px]">@oldPrice.ToString("N0") VNĐ</span>
+                        }
+                        else {
+                            <span class="text-transparent text-[11px]">-</span>
+                        }
+                        
+                        <button onclick="addToCart(@sp.MaSanPham)" class="absolute bottom-0 right-0 w-8 h-8 rounded-full border border-pcm-blue text-pcm-blue flex items-center justify-center hover:bg-pcm-blue hover:text-white transition opacity-0 group-hover:opacity-100">
+                            <i class="fas fa-shopping-cart text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>

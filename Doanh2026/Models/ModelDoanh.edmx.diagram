@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="73543a50057648bf8f2f0a0e9433364b" Name="Diagram1">
+        <EntityTypeShape EntityType="Doanh2026Model.ChiTietDonHang" Width="1.5" PointX="5.25" PointY="7.875" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.ChiTietGioHang" Width="1.5" PointX="5.25" PointY="5" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.DanhMuc" Width="1.5" PointX="0.75" PointY="8.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.DonHang" Width="1.5" PointX="3" PointY="2.25" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.GioHang" Width="1.5" PointX="3" PointY="12.625" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.HinhAnhSanPham" Width="1.5" PointX="5.25" PointY="14.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.NguoiDung" Width="1.5" PointX="0.75" PointY="11.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.NhatKyHoatDong" Width="1.5" PointX="3" PointY="22.375" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.PhuongThucThanhToan" Width="1.5" PointX="3" PointY="26.375" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.QuyenHan" Width="1.5" PointX="1.5" PointY="19.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.SanPham" Width="1.5" PointX="3" PointY="7.25" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.sysdiagram" Width="1.5" PointX="7.75" PointY="4.5" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.ThanhToan" Width="1.5" PointX="5.25" PointY="0.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.TrangThaiDonHang" Width="1.5" PointX="0.75" PointY="5.5" IsExpanded="true" />
+        <EntityTypeShape EntityType="Doanh2026Model.VaiTro" Width="1.5" PointX="1.5" PointY="16.75" IsExpanded="true" />
+        <AssociationConnector Association="Doanh2026Model.FK__ChiTietDo__MaDon__5EBF139D" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__ChiTietDo__MaSan__5FB337D6" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__ChiTietGi__MaGio__534D60F1" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__ChiTietGi__MaSan__5441852A" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__SanPham__MaDanhM__46E78A0C" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__DonHang__MaNguoi__59FA5E80" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__DonHang__MaTrang__5BE2A6F2" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__ThanhToan__MaDon__6477ECF3" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__GioHang__MaNguoi__4F7CD00D" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__HinhAnhSa__MaSan__4BAC3F29" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__NguoiDung__MaVai__403A8C7D" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__NhatKyHoa__MaNgu__68487DD7" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.FK__ThanhToan__MaPTT__656C112C" ManuallyRouted="false" />
+        <AssociationConnector Association="Doanh2026Model.VaiTro_QuyenHan" ManuallyRouted="false" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>
