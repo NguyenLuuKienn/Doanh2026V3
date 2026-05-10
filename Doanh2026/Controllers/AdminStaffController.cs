@@ -12,15 +12,24 @@ namespace Doanh2026.Controllers
     {
         private Doanh2026Entities db = new Doanh2026Entities();
 
+        private bool IsSuperAdmin()
+        {
+            var roleName = Session["UserRoleName"]?.ToString();
+            var roleId = Session["UserRole"]?.ToString();
+            return string.Equals(roleName, "SuperAdmin", StringComparison.OrdinalIgnoreCase) || roleId == "4";
+        }
+
         // GET: AdminStaff
         public ActionResult Index(string searchString)
         {
             var roleIds = db.VaiTroes.ToList();
+            int superAdminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("superadmin"))?.MaVaiTro ?? 4;
             int adminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("admin") || r.TenVaiTro.ToLower().Contains("quản trị"))?.MaVaiTro ?? 1;
             int staffRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("nhân viên") || r.TenVaiTro.ToLower().Contains("staff"))?.MaVaiTro ?? 3;
+            ViewBag.CanAssignAdmin = IsSuperAdmin();
 
             // Lọc nhân viên có vai trò Admin hoặc Staff
-            var staff = db.NguoiDungs.Where(n => n.MaVaiTro == adminRoleId || n.MaVaiTro == staffRoleId).AsQueryable();
+            var staff = db.NguoiDungs.Include(n => n.VaiTro).Where(n => n.MaVaiTro == adminRoleId || n.MaVaiTro == staffRoleId || n.MaVaiTro == superAdminRoleId).AsQueryable();
 
             if (!string.IsNullOrEmpty(searchString))
                 staff = staff.Where(n => n.HoTen.Contains(searchString) || n.Email.Contains(searchString));
@@ -34,12 +43,16 @@ namespace Doanh2026.Controllers
         public JsonResult GetStaff(int id)
         {
             var roleIds = db.VaiTroes.ToList();
+            int superAdminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("superadmin"))?.MaVaiTro ?? 4;
             int adminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("admin") || r.TenVaiTro.ToLower().Contains("quản trị"))?.MaVaiTro ?? 1;
             int staffRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("nhân viên") || r.TenVaiTro.ToLower().Contains("staff"))?.MaVaiTro ?? 3;
 
-            var staff = db.NguoiDungs.Find(id);
-            if (staff == null || (staff.MaVaiTro != adminRoleId && staff.MaVaiTro != staffRoleId))
+            var staff = db.NguoiDungs.Include(n => n.VaiTro).FirstOrDefault(n => n.MaNguoiDung == id);
+            if (staff == null || (staff.MaVaiTro != adminRoleId && staff.MaVaiTro != staffRoleId && staff.MaVaiTro != superAdminRoleId))
                 return Json(new { success = false, message = "Không tìm thấy nhân viên!" }, JsonRequestBehavior.AllowGet);
+
+            if ((staff.MaVaiTro == adminRoleId || staff.MaVaiTro == superAdminRoleId) && !IsSuperAdmin())
+                return Json(new { success = false, message = "Chỉ SuperAdmin mới được chỉnh sửa tài khoản Admin!" }, JsonRequestBehavior.AllowGet);
 
             return Json(new { success = true, data = new {
                 MaNguoiDung = staff.MaNguoiDung,
@@ -59,14 +72,16 @@ namespace Doanh2026.Controllers
             try
             {
                 var roleIds = db.VaiTroes.ToList();
+                int adminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("admin") || r.TenVaiTro.ToLower().Contains("quản trị"))?.MaVaiTro ?? 1;
                 int staffRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("nhân viên") || r.TenVaiTro.ToLower().Contains("staff"))?.MaVaiTro ?? 3;
 
                 var existing = db.NguoiDungs.FirstOrDefault(n => n.Email == nguoiDung.Email);
                 if (existing != null)
                     return Json(new { success = false, message = "Email đã tồn tại!" });
 
-                // Chỉ cho phép tạo role Staff (3). Admin (1) cần setup riêng
-                if (nguoiDung.MaVaiTro != staffRoleId) nguoiDung.MaVaiTro = staffRoleId;
+                if (!IsSuperAdmin() || (nguoiDung.MaVaiTro != adminRoleId && nguoiDung.MaVaiTro != staffRoleId))
+                    nguoiDung.MaVaiTro = staffRoleId;
+
                 nguoiDung.TrangThaiTaiKhoan = "HoatDong";
                 nguoiDung.NgayDangKy = DateTime.Now;
                 if (string.IsNullOrEmpty(nguoiDung.MatKhau))
@@ -88,6 +103,11 @@ namespace Doanh2026.Controllers
         {
             try
             {
+                var roleIds = db.VaiTroes.ToList();
+                int superAdminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("superadmin"))?.MaVaiTro ?? 4;
+                int adminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("admin") || r.TenVaiTro.ToLower().Contains("quản trị"))?.MaVaiTro ?? 1;
+                int staffRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("nhân viên") || r.TenVaiTro.ToLower().Contains("staff"))?.MaVaiTro ?? 3;
+
                 var existing = db.NguoiDungs.Find(nguoiDung.MaNguoiDung);
                 if (existing == null) return Json(new { success = false, message = "Không tìm thấy!" });
 
@@ -95,8 +115,19 @@ namespace Doanh2026.Controllers
                 existing.SoDienThoai = nguoiDung.SoDienThoai;
                 existing.DiaChi = nguoiDung.DiaChi;
                 existing.TrangThaiTaiKhoan = nguoiDung.TrangThaiTaiKhoan;
-                if (nguoiDung.MaVaiTro == 3 || nguoiDung.MaVaiTro == 1)
-                    existing.MaVaiTro = nguoiDung.MaVaiTro;
+
+                if (existing.MaVaiTro != superAdminRoleId)
+                {
+                    if (IsSuperAdmin() && (nguoiDung.MaVaiTro == adminRoleId || nguoiDung.MaVaiTro == staffRoleId))
+                        existing.MaVaiTro = nguoiDung.MaVaiTro;
+                    else if (!IsSuperAdmin())
+                        existing.MaVaiTro = staffRoleId;
+                }
+                else
+                {
+                    existing.MaVaiTro = superAdminRoleId;
+                }
+
                 if (!string.IsNullOrEmpty(nguoiDung.MatKhau))
                     existing.MatKhau = nguoiDung.MatKhau;
 
@@ -116,8 +147,16 @@ namespace Doanh2026.Controllers
         {
             try
             {
+                var roleIds = db.VaiTroes.ToList();
+                int superAdminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("superadmin"))?.MaVaiTro ?? 4;
+                int adminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("admin") || r.TenVaiTro.ToLower().Contains("quản trị"))?.MaVaiTro ?? 1;
+
                 var staff = db.NguoiDungs.Find(id);
                 if (staff == null) return Json(new { success = false });
+
+                if (!IsSuperAdmin() && (staff.MaVaiTro == adminRoleId || staff.MaVaiTro == superAdminRoleId))
+                    return Json(new { success = false, message = "Chỉ SuperAdmin mới được thay đổi trạng thái tài khoản Admin/SuperAdmin." });
+
                 staff.TrangThaiTaiKhoan = staff.TrangThaiTaiKhoan == "HoatDong" ? "KhoaTaiKhoan" : "HoatDong";
                 db.SaveChanges();
                 return Json(new { success = true, newStatus = staff.TrangThaiTaiKhoan });
@@ -134,12 +173,19 @@ namespace Doanh2026.Controllers
         {
             try
             {
+                var roleIds = db.VaiTroes.ToList();
+                int superAdminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("superadmin"))?.MaVaiTro ?? 4;
+                int adminRoleId = roleIds.FirstOrDefault(r => r.TenVaiTro.ToLower().Contains("admin") || r.TenVaiTro.ToLower().Contains("quản trị"))?.MaVaiTro ?? 1;
+
                 // Không cho phép xóa chính mình
                 if ((int?)Session["UserId"] == id)
                     return Json(new { success = false, message = "Không thể xóa tài khoản đang đăng nhập!" });
 
                 var staff = db.NguoiDungs.Find(id);
                 if (staff == null) return Json(new { success = false, message = "Không tìm thấy!" });
+
+                if (!IsSuperAdmin() && (staff.MaVaiTro == adminRoleId || staff.MaVaiTro == superAdminRoleId))
+                    return Json(new { success = false, message = "Chỉ SuperAdmin mới được xóa tài khoản Admin/SuperAdmin." });
 
                 db.NguoiDungs.Remove(staff);
                 db.SaveChanges();

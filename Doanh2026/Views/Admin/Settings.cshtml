@@ -1,0 +1,49 @@
+﻿@{
+    ViewBag.Title = "Cài đặt chung";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-slate-800">Cài đặt chung</h1>
+        <p class="text-xs text-slate-500 mt-1">Cập nhật thông tin hiển thị và liên hệ cho hệ thống admin.</p>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-medium">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm font-medium">@TempData["Error"]</div>
+    }
+
+    <form method="post" action="/Admin/Settings" class="bg-white border border-slate-100 rounded-xl p-5 space-y-4">
+        @Html.AntiForgeryToken()
+
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Tên website</label>
+            <input type="text" name="siteName" value="@ViewBag.SiteName" class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-pcm-blue" />
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Số điện thoại hỗ trợ</label>
+                <input type="text" name="supportPhone" value="@ViewBag.SupportPhone" class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-pcm-blue" />
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Email hỗ trợ</label>
+                <input type="text" name="supportEmail" value="@ViewBag.SupportEmail" class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-pcm-blue" />
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Địa chỉ cửa hàng</label>
+            <textarea name="storeAddress" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-pcm-blue">@ViewBag.StoreAddress</textarea>
+        </div>
+
+        <div class="pt-2">
+            <button type="submit" class="px-4 py-2 rounded-lg bg-pcm-blue text-white font-semibold hover:bg-blue-700 transition">Lưu cài đặt</button>
+        </div>
+    </form>
+</div>

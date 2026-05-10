@@ -14,9 +14,9 @@
         <button class="bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-slate-50 shadow-sm transition">
             <i class="far fa-calendar-alt mr-1"></i> Hôm nay
         </button>
-        <button class="bg-pcm-blue text-white px-3 py-1.5 rounded-md text-xs font-semibold shadow-md shadow-pcm-blue/20 hover:bg-blue-700 transition">
+        <a href="/Admin/Reports" class="inline-flex items-center bg-pcm-blue text-white px-3 py-1.5 rounded-md text-xs font-semibold shadow-md shadow-pcm-blue/20 hover:bg-blue-700 transition">
             <i class="fas fa-download mr-1"></i> Xuất Báo Cáo
-        </button>
+        </a>
     </div>
 </div>
 
@@ -116,6 +116,29 @@
                     {
                         foreach (var order in Model)
                         {
+                            var orderDetailsPayload = new {
+                                MaDonHang = order.MaDonHang,
+                                TenNguoiNhan = order.TenNguoiNhan,
+                                SDTNhan = order.SDTNhan,
+                                DiaChiNhan = order.DiaChiNhan,
+                                TongTien = order.TongTien,
+                                GhiChu = order.GhiChu,
+                                NgayDat = order.NgayDat,
+                                MaTrangThai = order.MaTrangThai,
+                                TrangThaiDonHang = new { TenTrangThai = order.TrangThaiDonHang != null ? order.TrangThaiDonHang.TenTrangThai : null },
+                                NguoiDung = new { Email = order.NguoiDung != null ? order.NguoiDung.Email : null },
+                                ChiTietDonHangs = order.ChiTietDonHangs.Select(ct => new {
+                                    SoLuong = ct.SoLuong,
+                                    DonGia = ct.DonGia,
+                                    SanPham = new { TenSanPham = ct.SanPham != null ? ct.SanPham.TenSanPham : null }
+                                })
+                            };
+                            var orderEditPayload = new {
+                                MaDonHang = order.MaDonHang,
+                                TenNguoiNhan = order.TenNguoiNhan,
+                                MaTrangThai = order.MaTrangThai,
+                                TrangThaiDonHang = new { TenTrangThai = order.TrangThaiDonHang != null ? order.TrangThaiDonHang.TenTrangThai : null }
+                            };
                             var statusClass = "bg-slate-100 text-slate-600";
                             var statusIcon = "fa-clock";
                             
@@ -135,8 +158,8 @@
                                 </td>
                                 <td class="py-3 px-5 text-slate-500 font-medium">@(order.NgayDat?.ToString("dd/MM/yyyy HH:mm"))</td>
                                 <td class="py-3 px-5 text-center space-x-1">
-                                    <button class="w-7 h-7 rounded bg-slate-100 text-slate-500 hover:bg-pcm-blue hover:text-white transition" title="Xem chi tiết"><i class="fas fa-eye text-xs"></i></button>
-                                    <button class="w-7 h-7 rounded bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white transition" title="Cập nhật"><i class="fas fa-edit text-xs"></i></button>
+                                    <button type="button" onclick='openOrderDetailsModal(@Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(orderDetailsPayload)))' class="w-7 h-7 inline-flex items-center justify-center rounded bg-slate-100 text-slate-500 hover:bg-pcm-blue hover:text-white transition" title="Xem chi tiết"><i class="fas fa-eye text-xs"></i></button>
+                                    <button type="button" onclick='openEditOrderModal(@Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(orderEditPayload)))' class="w-7 h-7 inline-flex items-center justify-center rounded bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white transition" title="Cập nhật"><i class="fas fa-edit text-xs"></i></button>
                                 </td>
                             </tr>
                         }
@@ -164,8 +187,201 @@
     </div>
 </div>
 
+<!-- Order Details Modal -->
+<div id="orderDetailsModal" class="fixed inset-0 z-[300] hidden">
+    <button type="button" class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onclick="closeOrderModals()" aria-label="Đóng chi tiết đơn hàng"></button>
+    <div class="relative z-10 min-h-full flex items-center justify-center px-4 py-8">
+        <div class="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b bg-slate-50">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Chi tiết đơn hàng</h3>
+                    <p id="orderDetailsSub" class="text-xs text-slate-500 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeOrderModals()" class="text-slate-400 hover:text-red-500 text-xl leading-none">&times;</button>
+            </div>
+            <div class="p-5 max-h-[75vh] overflow-y-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 text-sm">
+                    <div class="rounded-xl bg-slate-50 p-4">
+                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Khách hàng</div>
+                        <div class="font-bold text-slate-800" id="detailsCustomerName"></div>
+                        <div class="text-slate-600 mt-1" id="detailsCustomerEmail"></div>
+                        <div class="text-slate-500 mt-1" id="detailsCustomerPhone"></div>
+                    </div>
+                    <div class="rounded-xl bg-slate-50 p-4">
+                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Thông tin giao hàng</div>
+                        <div class="font-semibold text-slate-800" id="detailsRecipient"></div>
+                        <div class="text-slate-500 mt-1" id="detailsAddress"></div>
+                        <div class="text-slate-500 mt-1" id="detailsDate"></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span id="detailsStatusBadge" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"></span>
+                    <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700" id="detailsOrderCode"></span>
+                </div>
+
+                <div class="overflow-x-auto border rounded-xl">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-wider">
+                            <tr>
+                                <th class="py-3 px-4">Sản phẩm</th>
+                                <th class="py-3 px-4 text-right">SL</th>
+                                <th class="py-3 px-4 text-right">Đơn giá</th>
+                                <th class="py-3 px-4 text-right">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailsItems" class="divide-y"></tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 flex items-center justify-between">
+                    <div class="text-sm text-slate-500">Ghi chú: <span id="detailsNote" class="text-slate-700 font-medium"></span></div>
+                    <div class="text-lg font-black text-slate-800">Tổng: <span id="detailsTotal"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Edit Modal -->
+<div id="orderEditModal" class="fixed inset-0 z-[310] hidden">
+    <button type="button" class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onclick="closeOrderModals()" aria-label="Đóng form cập nhật đơn hàng"></button>
+    <div class="relative z-10 min-h-full flex items-center justify-center px-4 py-8">
+        <div class="w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b bg-slate-50">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Cập nhật đơn hàng</h3>
+                    <p id="editOrderSub" class="text-xs text-slate-500 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeOrderModals()" class="text-slate-400 hover:text-red-500 text-xl leading-none">&times;</button>
+            </div>
+            <div class="p-5">
+                <input type="hidden" id="editOrderId" />
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 text-sm">
+                    <div class="rounded-xl bg-slate-50 p-4">
+                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Đơn hàng</div>
+                        <div class="font-bold text-slate-800" id="editOrderCode"></div>
+                        <div class="text-slate-500 mt-1" id="editOrderCustomer"></div>
+                    </div>
+                    <div class="rounded-xl bg-slate-50 p-4">
+                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Trạng thái hiện tại</div>
+                        <div class="font-bold text-slate-800" id="editOrderCurrentStatus"></div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    @{ 
+                        var statusOptions = ViewBag.StatusList as System.Collections.Generic.IEnumerable<System.Web.Mvc.SelectListItem>;
+                        if (statusOptions == null)
+                        {
+                            statusOptions = new List<System.Web.Mvc.SelectListItem>();
+                        }
+                    }
+                    @Html.Label("editOrderStatus", "Trạng thái mới", new { @class = "block text-sm font-semibold mb-2 text-slate-700" })
+                    @Html.DropDownList("editOrderStatus", statusOptions, new { @class = "w-full p-3 border border-slate-200 rounded-xl outline-none focus:border-pcm-blue", id = "editOrderStatus" })
+                </div>
+
+                <div class="flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeOrderModals()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200">Hủy</button>
+                    <button type="button" onclick="saveOrderStatus()" id="btnSaveOrderStatus" class="px-4 py-2 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600">Lưu thay đổi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section scripts {
     <script>
+        let currentEditOrderId = 0;
+
+        function closeOrderModals() {
+            $('#orderDetailsModal').addClass('hidden');
+            $('#orderEditModal').addClass('hidden');
+        }
+
+        function formatMoney(value) {
+            return new Intl.NumberFormat('vi-VN').format(value || 0) + ' đ';
+        }
+
+        function getStatusStyle(statusName) {
+            const name = (statusName || '').toLowerCase();
+            if (name.includes('chờ')) return { cls: 'bg-amber-100 text-amber-700', icon: 'fa-spinner fa-spin' };
+            if (name.includes('đang giao')) return { cls: 'bg-blue-100 text-blue-700', icon: 'fa-truck' };
+            if (name.includes('đã giao') || name.includes('hoàn thành')) return { cls: 'bg-emerald-100 text-emerald-700', icon: 'fa-check' };
+            if (name.includes('hủy')) return { cls: 'bg-red-100 text-red-700', icon: 'fa-times' };
+            return { cls: 'bg-slate-100 text-slate-600', icon: 'fa-clock' };
+        }
+
+        function openOrderDetailsModal(order) {
+            const statusName = order?.TrangThaiDonHang?.TenTrangThai || order?.TrangThaiDonHang?.tenTrangThai || 'N/A';
+            const statusStyle = getStatusStyle(statusName);
+            const items = order?.ChiTietDonHangs || order?.ChiTietDonHangs1 || [];
+
+            $('#orderDetailsSub').text('#' + order.MaDonHang);
+            $('#detailsCustomerName').text(order.TenNguoiNhan || 'N/A');
+            $('#detailsCustomerEmail').text(order.NguoiDung?.Email || '');
+            $('#detailsCustomerPhone').text('SĐT: ' + (order.SDTNhan || ''));
+            $('#detailsRecipient').text(order.TenNguoiNhan || 'N/A');
+            $('#detailsAddress').text(order.DiaChiNhan || '');
+            $('#detailsDate').text('Ngày đặt: ' + (order.NgayDat ? new Date(order.NgayDat).toLocaleString('vi-VN') : 'N/A'));
+            $('#detailsOrderCode').text('Mã đơn #' + order.MaDonHang);
+            $('#detailsStatusBadge').attr('class', 'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold ' + statusStyle.cls)
+                .html('<i class="fas ' + statusStyle.icon + ' mr-1"></i>' + statusName);
+            $('#detailsNote').text(order.GhiChu || 'Không có');
+            $('#detailsTotal').text(formatMoney(order.TongTien || 0));
+
+            const rows = (items.length ? items : []).map(function (item) {
+                return '<tr>' +
+                    '<td class="py-3 px-4 font-medium text-slate-700">' + ((item.SanPham && item.SanPham.TenSanPham) || item.TenSanPham || 'Sản phẩm') + '</td>' +
+                    '<td class="py-3 px-4 text-right">' + (item.SoLuong || 0) + '</td>' +
+                    '<td class="py-3 px-4 text-right">' + formatMoney(item.DonGia || 0) + '</td>' +
+                    '<td class="py-3 px-4 text-right font-semibold">' + formatMoney((item.SoLuong || 0) * (item.DonGia || 0)) + '</td>' +
+                '</tr>';
+            }).join('');
+
+            $('#detailsItems').html(rows || '<tr><td colspan="4" class="py-6 text-center text-slate-400">Không có chi tiết đơn hàng</td></tr>');
+            $('#orderDetailsModal').removeClass('hidden');
+        }
+
+        function openEditOrderModal(order) {
+            const statusName = order?.TrangThaiDonHang?.TenTrangThai || order?.TrangThaiDonHang?.tenTrangThai || 'N/A';
+            $('#editOrderId').val(order.MaDonHang);
+            $('#editOrderSub').text('#' + order.MaDonHang);
+            $('#editOrderCode').text('Mã đơn #' + order.MaDonHang);
+            $('#editOrderCustomer').text(order.TenNguoiNhan || 'N/A');
+            $('#editOrderCurrentStatus').text(statusName);
+            $('#editOrderStatus').val(order.MaTrangThai);
+            currentEditOrderId = order.MaDonHang;
+            $('#orderEditModal').removeClass('hidden');
+        }
+
+        function saveOrderStatus() {
+            const orderId = $('#editOrderId').val();
+            const statusId = $('#editOrderStatus').val();
+
+            if (!orderId || !statusId) {
+                Toast.fire({ icon: 'warning', title: 'Vui lòng chọn trạng thái.' });
+                return;
+            }
+
+            $('#btnSaveOrderStatus').prop('disabled', true).text('Đang lưu...');
+
+            $.post('/Admin/UpdateOrderStatus', { id: orderId, maTrangThai: statusId }, function (res) {
+                if (res && res.success) {
+                    Toast.fire({ icon: 'success', title: res.message || 'Đã cập nhật trạng thái đơn hàng.' });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: (res && res.message) ? res.message : 'Không thể cập nhật đơn hàng.' });
+                    return;
+                }
+                closeOrderModals();
+                setTimeout(() => location.reload(), 600);
+            }).fail(function () {
+                Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: 'Không thể cập nhật đơn hàng.' });
+            }).always(function () {
+                $('#btnSaveOrderStatus').prop('disabled', false).text('Lưu thay đổi');
+            });
+        }
+
         // Init demo chart
         document.addEventListener('DOMContentLoaded', function() {
             var ctx = document.getElementById('revenueChart').getContext('2d');

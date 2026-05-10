@@ -4,6 +4,7 @@ using System.Web.Mvc;
 using System.Collections.Generic;
 using Doanh2026.Models;
 using System.Data.Entity;
+using System.Configuration;
 
 namespace Doanh2026.Controllers
 {
@@ -108,11 +109,13 @@ namespace Doanh2026.Controllers
                         DoanhThu = x.TotalRevenue
                     }).ToList();
                 ViewBag.TopProducts = topProducts;
+                ViewBag.StatusList = new SelectList(db.TrangThaiDonHangs.OrderBy(t => t.MaTrangThai).ToList(), "MaTrangThai", "TenTrangThai");
 
                 // 10 Đơn hàng mới nhất
                 var recentOrders = db.DonHangs
                     .Include(d => d.TrangThaiDonHang)
                     .Include(d => d.NguoiDung)
+                    .Include(d => d.ChiTietDonHangs.Select(ct => ct.SanPham))
                     .OrderByDescending(d => d.NgayDat)
                     .Take(10)
                     .ToList();
@@ -132,6 +135,7 @@ namespace Doanh2026.Controllers
                 ViewBag.Period = "month";
                 ViewBag.ChartData = "[]";
                 ViewBag.TopProducts = new List<object>();
+                ViewBag.StatusList = new SelectList(new List<SelectListItem>());
                 return View(new List<DonHang>());
             }
         }
@@ -215,10 +219,93 @@ namespace Doanh2026.Controllers
             return View();
         }
 
+        // GET: Admin/Settings - Cai dat chung he thong
+        [Authorize(Roles = "SuperAdmin")]
+        public ActionResult Settings()
+        {
+            ViewBag.SupportPhone = ConfigurationManager.AppSettings["SupportPhone"] ?? "";
+            ViewBag.SupportEmail = ConfigurationManager.AppSettings["SupportEmail"] ?? "";
+            ViewBag.StoreAddress = ConfigurationManager.AppSettings["StoreAddress"] ?? "";
+            ViewBag.SiteName = ConfigurationManager.AppSettings["SiteName"] ?? "QuocDoanhJr";
+            return View();
+        }
+
+        // POST: Admin/Settings
+        [Authorize(Roles = "SuperAdmin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Settings(string siteName, string supportPhone, string supportEmail, string storeAddress)
+        {
+            try
+            {
+                var config = System.Web.Configuration.WebConfigurationManager.OpenWebConfiguration("~");
+
+                SetOrAddAppSetting(config, "SiteName", siteName);
+                SetOrAddAppSetting(config, "SupportPhone", supportPhone);
+                SetOrAddAppSetting(config, "SupportEmail", supportEmail);
+                SetOrAddAppSetting(config, "StoreAddress", storeAddress);
+
+                config.Save(ConfigurationSaveMode.Modified);
+                ConfigurationManager.RefreshSection("appSettings");
+
+                TempData["Success"] = "Đã lưu cài đặt chung thành công.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Không thể lưu cài đặt: " + ex.Message;
+            }
+
+            return RedirectToAction("Settings");
+        }
+
+        private static void SetOrAddAppSetting(System.Configuration.Configuration config, string key, string value)
+        {
+            var setting = config.AppSettings.Settings[key];
+            if (setting == null)
+            {
+                config.AppSettings.Settings.Add(key, value ?? string.Empty);
+                return;
+            }
+
+            setting.Value = value ?? string.Empty;
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing) db.Dispose();
             base.Dispose(disposing);
         }
+
+        // POST: Admin/UpdateOrderStatus
+        [HttpPost]
+        public JsonResult UpdateOrderStatus(int id, int maTrangThai)
+        {
+            try
+            {
+                var order = db.DonHangs.FirstOrDefault(d => d.MaDonHang == id);
+                if (order == null)
+                {
+                    return Json(new { success = false, message = "Không tìm thấy đơn hàng." });
+                }
+
+                var statusExists = db.TrangThaiDonHangs.Any(t => t.MaTrangThai == maTrangThai);
+                if (!statusExists)
+                {
+                    return Json(new { success = false, message = "Trạng thái không hợp lệ." });
+                }
+
+                order.MaTrangThai = maTrangThai;
+                db.SaveChanges();
+
+                var statusName = db.TrangThaiDonHangs.Where(t => t.MaTrangThai == maTrangThai).Select(t => t.TenTrangThai).FirstOrDefault();
+
+                return Json(new { success = true, message = "Đã cập nhật trạng thái đơn hàng.", statusName = statusName });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Không thể cập nhật đơn hàng: " + ex.Message });
+            }
+        }
+
     }
 }

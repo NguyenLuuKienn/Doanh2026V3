@@ -37,19 +37,28 @@
             <tbody class="text-[13px] text-slate-700 divide-y divide-slate-100">
                 @if (Model != null && Model.Any())
                 {
+                    var canAssignAdmin = (ViewBag.CanAssignAdmin as bool?) == true;
                     foreach (var s in Model)
                     {
-                        var isAdmin = s.MaVaiTro == 1;
+                        var roleName = s.VaiTro?.TenVaiTro ?? "";
+                        var isSuperAdmin = roleName == "SuperAdmin";
+                        var isAdmin = roleName == "Admin" || isSuperAdmin;
                         var isLocked = s.TrangThaiTaiKhoan == "KhoaTaiKhoan";
                         var isCurrentUser = (int?)Session["UserId"] == s.MaNguoiDung;
                         <tr class="hover:bg-slate-50 transition @(isCurrentUser ? "bg-blue-50/50" : "")">
                             <td class="py-3 px-5">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full @(isAdmin ? "bg-gradient-to-br from-amber-400 to-orange-500" : "bg-gradient-to-br from-slate-400 to-slate-600") text-white flex items-center justify-center font-bold text-sm shrink-0">
+                                    <div class="w-9 h-9 rounded-full @(isSuperAdmin ? "bg-gradient-to-br from-fuchsia-500 to-purple-600" : isAdmin ? "bg-gradient-to-br from-amber-400 to-orange-500" : "bg-gradient-to-br from-slate-400 to-slate-600") text-white flex items-center justify-center font-bold text-sm shrink-0">
                                         @(s.HoTen?.Substring(0, 1).ToUpper())
                                     </div>
                                     <div>
-                                        <div class="font-semibold text-slate-800">@s.HoTen @(isCurrentUser ? "<span class=\"text-[10px] text-pcm-blue font-bold\">(Bạn)</span>" : "")</div>
+                                        <div class="font-semibold text-slate-800">
+                                            @s.HoTen
+                                            @if (isCurrentUser)
+                                            {
+                                                <span class="text-[10px] text-pcm-blue font-bold">(Bạn)</span>
+                                            }
+                                        </div>
                                         <div class="text-[11px] text-slate-400">#@s.MaNguoiDung</div>
                                     </div>
                                 </div>
@@ -59,7 +68,11 @@
                                 <div class="text-[12px] text-slate-500">@s.SoDienThoai</div>
                             </td>
                             <td class="py-3 px-5 text-center">
-                                @if (isAdmin)
+                                @if (isSuperAdmin)
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-fuchsia-100 text-fuchsia-700"><i class="fas fa-shield-halved mr-1"></i> SuperAdmin</span>
+                                }
+                                else if (isAdmin)
                                 {
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700"><i class="fas fa-crown mr-1"></i> Admin</span>
                                 }
@@ -79,13 +92,20 @@
                                 }
                             </td>
                             <td class="py-3 px-5 text-center space-x-1">
-                                <button onclick="openModal('edit', @s.MaNguoiDung)" class="w-7 h-7 rounded bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white transition" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
-                                @if (!isCurrentUser)
+                                @if (!isAdmin || canAssignAdmin)
                                 {
-                                    <button onclick="toggleStatus(@s.MaNguoiDung)" class="w-7 h-7 rounded bg-slate-100 text-slate-500 @(isLocked ? "hover:bg-green-500" : "hover:bg-red-500") hover:text-white transition">
-                                        <i class="fas @(isLocked ? "fa-lock-open" : "fa-ban") text-xs"></i>
-                                    </button>
-                                    <button onclick="deleteStaff(@s.MaNguoiDung, '@s.HoTen')" class="w-7 h-7 rounded bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white transition" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
+                                    <button onclick="openModal('edit', @s.MaNguoiDung)" class="w-7 h-7 rounded bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white transition" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
+                                    if (!isCurrentUser)
+                                    {
+                                        <button onclick="toggleStatus(@s.MaNguoiDung)" class="w-7 h-7 rounded bg-slate-100 text-slate-500 @(isLocked ? "hover:bg-green-500" : "hover:bg-red-500") hover:text-white transition">
+                                            <i class="fas @(isLocked ? "fa-lock-open" : "fa-ban") text-xs"></i>
+                                        </button>
+                                        <button onclick="deleteStaff(@s.MaNguoiDung, '@s.HoTen')" class="w-7 h-7 rounded bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white transition" title="Xóa"><i class="fas fa-trash text-xs"></i></button>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-[11px] text-slate-400 font-medium">Chỉ SuperAdmin</span>
                                 }
                             </td>
                         </tr>
@@ -102,7 +122,7 @@
 
 <!-- MODAL -->
 <div id="staffModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
-    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
+    <button type="button" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()" aria-label="Đóng modal nhân viên"></button>
     <div class="min-h-screen px-4 flex items-center justify-center">
         <div class="inline-block w-full max-w-lg bg-white rounded-xl shadow-2xl text-left overflow-hidden transform scale-95 opacity-0 transition-all" id="modalDialog">
             <div class="flex justify-between items-center px-6 py-4 border-b bg-slate-50">
@@ -113,30 +133,37 @@
                 <input type="hidden" id="MaNguoiDung" name="MaNguoiDung" value="0" />
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Họ & Tên <span class="text-red-500">*</span></label>
+                        <label for="HoTen" class="block text-xs font-bold text-slate-600 mb-1">Họ &amp; Tên <span class="text-red-500">*</span></label>
                         <input type="text" id="HoTen" name="HoTen" required class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none focus:border-pcm-blue" />
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Email <span class="text-red-500">*</span></label>
+                        <label for="Email" class="block text-xs font-bold text-slate-600 mb-1">Email <span class="text-red-500">*</span></label>
                         <input type="email" id="Email" name="Email" required class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none focus:border-pcm-blue" />
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Mật khẩu</label>
+                        <label for="MatKhau" class="block text-xs font-bold text-slate-600 mb-1">Mật khẩu</label>
                         <input type="password" id="MatKhau" name="MatKhau" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none focus:border-pcm-blue" placeholder="Để trống = không đổi" />
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">SĐT</label>
+                        <label for="SoDienThoai" class="block text-xs font-bold text-slate-600 mb-1">SĐT</label>
                         <input type="tel" id="SoDienThoai" name="SoDienThoai" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none focus:border-pcm-blue" />
                     </div>
+                        <div>
+                        <label for="MaVaiTro" class="block text-xs font-bold text-slate-600 mb-1">Vai trò</label>
+                            <select id="MaVaiTro" name="MaVaiTro" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none bg-white focus:border-pcm-blue">
+                                <option value="3">Nhân viên</option>
+                                @if ((ViewBag.CanAssignAdmin as bool?) == true)
+                                {
+                                    <option value="1">Admin</option>
+                                }
+                            </select>
+                            @if ((ViewBag.CanAssignAdmin as bool?) != true)
+                            {
+                                <p class="text-[11px] text-amber-600 mt-1">Chỉ SuperAdmin mới được gán vai trò Admin.</p>
+                            }
+                        </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Vai trò</label>
-                        <select id="MaVaiTro" name="MaVaiTro" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none bg-white focus:border-pcm-blue">
-                            <option value="3">Nhân viên</option>
-                            <option value="1">Admin</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Trạng thái</label>
+                            <label for="TrangThaiTaiKhoan" class="block text-xs font-bold text-slate-600 mb-1">Trạng thái</label>
                         <select id="TrangThaiTaiKhoan" name="TrangThaiTaiKhoan" class="w-full px-3 py-2 border border-slate-200 rounded-md text-sm outline-none bg-white focus:border-pcm-blue">
                             <option value="HoatDong">Hoạt động</option>
                             <option value="KhoaTaiKhoan">Bị khóa</option>
@@ -166,6 +193,7 @@
         if (mode === 'create') {
             document.getElementById('modalTitle').innerText = 'Thêm Nhân Viên Mới';
             $('#Email').prop('readonly', false);
+            $('#MaVaiTro').val('3');
             showModal();
         } else {
             document.getElementById('modalTitle').innerText = 'Cập nhật Nhân Viên #' + id;
@@ -176,9 +204,15 @@
                     $('#HoTen').val(res.data.HoTen);
                     $('#Email').val(res.data.Email);
                     $('#SoDienThoai').val(res.data.SoDienThoai);
-                    $('#MaVaiTro').val(res.data.MaVaiTro);
+                    if ($('#MaVaiTro option[value="' + res.data.MaVaiTro + '"]').length) {
+                        $('#MaVaiTro').val(res.data.MaVaiTro);
+                    } else {
+                        $('#MaVaiTro').val('3');
+                    }
                     $('#TrangThaiTaiKhoan').val(res.data.TrangThaiTaiKhoan);
                     showModal();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Không thể mở', text: res.message });
                 }
             });
         }

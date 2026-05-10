@@ -1,4 +1,4 @@
-@model IEnumerable<Doanh2026.Models.DonHang>
+﻿@model IEnumerable<Doanh2026.Models.DonHang>
 @{
     ViewBag.Title = "Đơn đặt hàng của tôi";
     Layout = "~/Views/Shared/_LayoutIndex.cshtml";
@@ -46,6 +46,24 @@
                     {
                         foreach (var item in Model)
                         {
+                            var detailsPayload = new
+                            {
+                                MaDonHang = item.MaDonHang,
+                                NgayDat = item.NgayDat,
+                                TongTien = item.TongTien,
+                                TenNguoiNhan = item.TenNguoiNhan,
+                                SDTNhan = item.SDTNhan,
+                                DiaChiNhan = item.DiaChiNhan,
+                                GhiChu = item.GhiChu,
+                                TrangThai = item.TrangThaiDonHang != null ? item.TrangThaiDonHang.TenTrangThai : "N/A",
+                                ChiTiet = item.ChiTietDonHangs.Select(ct => new
+                                {
+                                    TenSanPham = ct.SanPham != null ? ct.SanPham.TenSanPham : "Sản phẩm",
+                                    SoLuong = ct.SoLuong,
+                                    DonGia = ct.DonGia
+                                }).ToList()
+                            };
+
                             <tr class="hover:bg-blue-50/30 transition">
                                 <td class="px-8 py-5 font-bold text-pcm-blue">#DH@(item.MaDonHang.ToString("D5"))</td>
                                 <td class="px-6 py-5 text-gray-600">@(item.NgayDat?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
@@ -58,19 +76,15 @@
                                         else if (statusName.Contains("Đã giao")) { statusClass = "bg-green-100 text-green-700 border border-green-200"; }
                                         else if (statusName.Contains("Hủy")) { statusClass = "bg-red-100 text-red-700"; }
                                     }
-                                    <span class="px-3 py-1 rounded-full text-[11px] font-bold @statusClass whitespace-nowrap">
-                                        @statusName
-                                    </span>
+                                    <span class="px-3 py-1 rounded-full text-[11px] font-bold @statusClass whitespace-nowrap">@statusName</span>
                                 </td>
                                 <td class="px-6 py-5 text-right">
-                                    <span class="font-extrabold text-gray-800">
-                                        @(item.TongTien?.ToString("N0") ?? "0")đ
-                                    </span>
+                                    <span class="font-extrabold text-gray-800">@(item.TongTien?.ToString("N0") ?? "0")đ</span>
                                 </td>
                                 <td class="px-8 py-5 text-center">
-                                    <a href="/Payment/OrderHistoryDetails/@item.MaDonHang" class="text-[12px] font-bold text-pcm-blue border border-pcm-blue/20 bg-white hover:bg-pcm-blue hover:text-white px-4 py-1.5 rounded-lg transition shadow-sm inline-block">
+                                    <button type="button" onclick='openOrderDetailsModal(@Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(detailsPayload)))' class="text-[12px] font-bold text-pcm-blue border border-pcm-blue/20 bg-white hover:bg-pcm-blue hover:text-white px-4 py-1.5 rounded-lg transition shadow-sm inline-block">
                                         Chi tiết
-                                    </a>
+                                    </button>
                                 </td>
                             </tr>
                         }
@@ -78,7 +92,7 @@
                 </tbody>
             </table>
         </div>
-        
+
         <div class="p-8 bg-slate-50 border-t border-gray-100">
             <p class="text-xs text-gray-400 italic">
                 <i class="fas fa-info-circle mr-1"></i> Lưu ý: Mọi thắc mắc về đơn hàng vui lòng liên hệ Hotline: 087.997.9997 (24/7)
@@ -86,3 +100,93 @@
         </div>
     </div>
 </div>
+
+<div id="orderDetailsModal" class="fixed inset-0 z-[300] hidden">
+    <button type="button" class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onclick="closeOrderDetailsModal()" aria-label="Đóng chi tiết đơn hàng"></button>
+    <div class="relative z-10 min-h-full flex items-center justify-center px-4 py-8">
+        <div class="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b bg-slate-50">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Chi tiết đơn hàng</h3>
+                    <p id="orderDetailsSub" class="text-xs text-slate-500 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeOrderDetailsModal()" class="text-slate-400 hover:text-red-500 text-xl leading-none">&times;</button>
+            </div>
+
+            <div class="p-5 max-h-[75vh] overflow-y-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 text-sm">
+                    <div class="rounded-xl bg-slate-50 p-4">
+                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Người nhận</div>
+                        <div class="font-bold text-slate-800" id="detailsRecipient"></div>
+                        <div class="text-slate-600 mt-1" id="detailsPhone"></div>
+                        <div class="text-slate-500 mt-1" id="detailsAddress"></div>
+                    </div>
+                    <div class="rounded-xl bg-slate-50 p-4">
+                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Thông tin đơn</div>
+                        <div class="font-semibold text-slate-800" id="detailsStatus"></div>
+                        <div class="text-slate-500 mt-1" id="detailsDate"></div>
+                        <div class="text-slate-500 mt-1" id="detailsCode"></div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto border rounded-xl">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-wider">
+                            <tr>
+                                <th class="py-3 px-4">Sản phẩm</th>
+                                <th class="py-3 px-4 text-right">SL</th>
+                                <th class="py-3 px-4 text-right">Đơn giá</th>
+                                <th class="py-3 px-4 text-right">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailsItems" class="divide-y"></tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 flex items-center justify-between">
+                    <div class="text-sm text-slate-500">Ghi chú: <span id="detailsNote" class="text-slate-700 font-medium"></span></div>
+                    <div class="text-lg font-black text-slate-800">Tổng: <span id="detailsTotal"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        function closeOrderDetailsModal() {
+            $('#orderDetailsModal').addClass('hidden');
+        }
+
+        function formatMoney(v) {
+            return new Intl.NumberFormat('vi-VN').format(v || 0) + 'đ';
+        }
+
+        function openOrderDetailsModal(order) {
+            $('#orderDetailsSub').text('#DH' + String(order.MaDonHang).padStart(5, '0'));
+            $('#detailsRecipient').text(order.TenNguoiNhan || 'N/A');
+            $('#detailsPhone').text('SĐT: ' + (order.SDTNhan || '')); 
+            $('#detailsAddress').text(order.DiaChiNhan || '');
+            $('#detailsStatus').text('Trạng thái: ' + (order.TrangThai || 'N/A'));
+            $('#detailsDate').text('Ngày đặt: ' + (order.NgayDat ? new Date(order.NgayDat).toLocaleString('vi-VN') : 'N/A'));
+            $('#detailsCode').text('Mã đơn: #DH' + String(order.MaDonHang).padStart(5, '0'));
+            $('#detailsNote').text(order.GhiChu || 'Không có');
+            $('#detailsTotal').text(formatMoney(order.TongTien || 0));
+
+            var items = order.ChiTiet || [];
+            var rows = items.map(function (x) {
+                var soLuong = x.SoLuong || 0;
+                var donGia = x.DonGia || 0;
+                return '<tr>' +
+                    '<td class="py-3 px-4 font-medium text-slate-700">' + (x.TenSanPham || 'Sản phẩm') + '</td>' +
+                    '<td class="py-3 px-4 text-right">' + soLuong + '</td>' +
+                    '<td class="py-3 px-4 text-right">' + formatMoney(donGia) + '</td>' +
+                    '<td class="py-3 px-4 text-right font-semibold">' + formatMoney(soLuong * donGia) + '</td>' +
+                    '</tr>';
+            }).join('');
+
+            $('#detailsItems').html(rows || '<tr><td colspan="4" class="py-6 text-center text-slate-400">Không có chi tiết sản phẩm.</td></tr>');
+            $('#orderDetailsModal').removeClass('hidden');
+        }
+    </script>
+}

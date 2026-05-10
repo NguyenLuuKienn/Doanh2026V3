@@ -1,0 +1,49 @@
+﻿@model IEnumerable<Doanh2026.Models.SanPham>
+@{
+    var category = ViewBag.Category as Doanh2026.Models.DanhMuc;
+    ViewBag.Title = category != null ? category.TenDanhMuc : "Danh mục sản phẩm";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+
+<div class="mb-4 text-[13px] text-gray-500">
+    Trang chủ &rsaquo; <span class="font-medium text-gray-700">@(category != null ? category.TenDanhMuc : "Danh mục")</span>
+</div>
+
+<div class="bg-white rounded-xl border border-gray-100 p-4 md:p-6">
+    <div class="flex items-center justify-between mb-5">
+        <h1 class="text-xl md:text-2xl font-bold text-gray-800">@(category != null ? category.TenDanhMuc : "Sản phẩm")</h1>
+        <span class="text-sm text-gray-500">@Model.Count() sản phẩm</span>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="py-12 text-center text-gray-400">
+            <i class="fas fa-box-open text-4xl mb-3 block"></i>
+            Chưa có sản phẩm trong danh mục này.
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+            @foreach (var sp in Model)
+            {
+                var img = sp.HinhAnhSanPhams.FirstOrDefault(h => h.LaAnhDaiDien == true)?.DuongDanAnh
+                          ?? sp.HinhAnhSanPhams.FirstOrDefault()?.DuongDanAnh
+                          ?? "https://via.placeholder.com/300x300?text=No+Image";
+                var gia = sp.GiaUuDai ?? sp.GiaGoc;
+                var giaGoc = sp.GiaGoc;
+                <a href="/Product/Details/@sp.MaSanPham" class="group bg-white border border-gray-100 rounded-xl p-3 hover:shadow-md transition">
+                    <img src="@img" alt="@sp.TenSanPham" class="w-full h-40 object-contain mb-3" />
+                    <h3 class="text-sm font-bold text-gray-800 line-clamp-2 min-h-[40px] group-hover:text-pcm-blue">@sp.TenSanPham</h3>
+                    <div class="mt-2">
+                        <div class="text-red-500 font-extrabold">@gia.ToString("N0")đ</div>
+                        @if (giaGoc > gia)
+                        {
+                            <div class="text-xs text-gray-400 line-through">@giaGoc.ToString("N0")đ</div>
+                        }
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</div>

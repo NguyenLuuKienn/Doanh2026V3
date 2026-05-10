@@ -32,14 +32,14 @@
                     <h3 class="text-xs font-black text-gray-400 uppercase mb-3">Thông tin nhận hàng</h3>
                     <div class="space-y-1.5 text-sm">
                         <p class="font-bold text-gray-800">@Model.TenNguoiNhan</p>
-                        <p class="text-gray-600"><i class="fas fa-phone mr-2 w-4"></i>@Model.SoDienThoaiNhan</p>
-                        <p class="text-gray-600"><i class="fas fa-map-marker-alt mr-2 w-4"></i>@Model.DiaChiGiao</p>
+                        <p class="text-gray-600"><i class="fas fa-phone mr-2 w-4"></i>@Model.SDTNhan</p>
+                        <p class="text-gray-600"><i class="fas fa-map-marker-alt mr-2 w-4"></i>@Model.DiaChiNhan</p>
                     </div>
                 </div>
                 <div>
                     <h3 class="text-xs font-black text-gray-400 uppercase mb-3">Thanh toán</h3>
                     <div class="space-y-1.5 text-sm">
-                        <p class="text-gray-600">Phương thức: <span class="font-bold text-gray-800">@Model.PhuongThucThanhToan</span></p>
+                        <p class="text-gray-600">Phương thức:</p>
                         <p class="text-gray-600">Trạng thái: 
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold @(Model.MaTrangThai == 2 ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700")">
                                 @Model.TrangThaiDonHang.TenTrangThai
@@ -66,8 +66,8 @@
                     {
                         <tr>
                             <td class="px-6 py-4 font-bold text-gray-800">@item.SanPham.TenSanPham</td>
-                            <td class="px-6 py-4 text-center">x@item.SoLuong</td>
-                            <td class="px-6 py-4 text-right font-bold text-gray-700">@((item.DonGia * item.SoLuong).Value.ToString("N0"))đ</td>
+                            <td class="px-6 py-4 text-center">x @item.SoLuong</td>
+                            <td class="px-6 py-4 text-right font-bold text-gray-700">@((item.DonGia * item.SoLuong))đ</td>
                         </tr>
                     }
                 </tbody>

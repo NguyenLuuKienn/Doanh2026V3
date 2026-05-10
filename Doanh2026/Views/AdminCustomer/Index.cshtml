@@ -89,7 +89,7 @@
                                     </span>
                                 }
                             </td>
-                            <td class="py-3 px-5 text-slate-500 text-[12px]">@c.NgayDangKy?.ToString("dd/MM/yyyy")</td>
+                            <td class="py-3 px-5 text-slate-500 text-[12px]">@c.NgayDangKy</td>
                             <td class="py-3 px-5 text-center space-x-1">
                                 <button onclick="openModal('edit', @c.MaNguoiDung)" class="w-7 h-7 rounded bg-slate-100 text-slate-500 hover:bg-amber-500 hover:text-white transition" title="Sửa"><i class="fas fa-edit text-xs"></i></button>
                                 <button onclick="toggleStatus(@c.MaNguoiDung, '@c.HoTen')" class="w-7 h-7 rounded bg-slate-100 text-slate-500 @(isLocked ? "hover:bg-green-500" : "hover:bg-red-500") hover:text-white transition" title="@(isLocked ? "Mở khóa" : "Khóa")">

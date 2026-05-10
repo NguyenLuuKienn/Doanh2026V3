@@ -9,6 +9,20 @@ namespace Doanh2026.Filters
     /// </summary>
     public class AdminAuthFilter : ActionFilterAttribute
     {
+        private static bool IsAdminOrSuperAdmin(System.Web.HttpSessionStateBase session)
+        {
+            var roleName = session["UserRoleName"]?.ToString();
+            var roleId = session["UserRole"]?.ToString();
+
+            if (string.Equals(roleName, "SuperAdmin", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(roleName, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return roleId == "1" || roleId == "4";
+        }
+
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
             var session = filterContext.HttpContext.Session;
@@ -21,9 +35,8 @@ namespace Doanh2026.Filters
                 return;
             }
 
-            // Kiểm tra quyền Admin (MaVaiTro == 1)
-            var role = session["UserRole"];
-            if (role == null || (int)role != 1)
+            // Kiểm tra quyền Admin hoặc SuperAdmin
+            if (!IsAdminOrSuperAdmin(session))
             {
                 filterContext.Result = new RedirectResult("/Home/Index?accessDenied=true");
                 return;

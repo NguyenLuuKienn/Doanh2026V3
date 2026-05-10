@@ -1,0 +1,175 @@
+﻿@using Doanh2026.Models
+@{
+    ViewBag.Title = "Báo cáo";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    var orders = ViewBag.AllOrders as List<DonHang> ?? new List<DonHang>();
+    var topProducts = (ViewBag.TopProducts as System.Collections.IEnumerable) ?? new List<object>();
+
+    Func<object, string, object> getProp = (obj, propName) =>
+    {
+        if (obj == null || string.IsNullOrWhiteSpace(propName)) return null;
+        var prop = obj.GetType().GetProperty(propName);
+        return prop != null ? prop.GetValue(obj, null) : null;
+    };
+}
+
+<div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+    <div>
+        <h1 class="text-2xl font-bold text-slate-800">Báo cáo kinh doanh</h1>
+        <p class="text-xs text-slate-500 mt-1">@ViewBag.PeriodLabel</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="exportReportPdf()" class="px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-semibold hover:bg-red-600 transition">
+            <i class="fas fa-file-pdf mr-1"></i> Xuất PDF
+        </button>
+        <form action="/Admin/Reports" method="get" class="flex flex-wrap gap-2">
+        <select name="period" class="px-3 py-2 border border-slate-200 rounded-lg text-sm">
+            <option value="day" @(ViewBag.Period == "day" ? "selected" : "")>Hôm nay</option>
+            <option value="week" @(ViewBag.Period == "week" ? "selected" : "")>Tuần này</option>
+            <option value="month" @(ViewBag.Period == "month" ? "selected" : "")>Tháng này</option>
+        </select>
+        <button type="submit" class="px-3 py-2 bg-pcm-blue text-white rounded-lg text-sm font-semibold">Lọc dữ liệu</button>
+        </form>
+    </div>
+</div>
+
+<div id="report-export-root">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white border border-slate-100 rounded-xl p-4">
+        <p class="text-xs uppercase text-slate-500 font-semibold">Tổng đơn hàng</p>
+        <p class="text-2xl font-black text-slate-800 mt-1">@((ViewBag.TotalOrders as int? ?? 0).ToString("N0"))</p>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-xl p-4">
+        <p class="text-xs uppercase text-slate-500 font-semibold">Tổng doanh thu</p>
+        <p class="text-2xl font-black text-slate-800 mt-1">@((ViewBag.TotalRevenue as decimal? ?? 0).ToString("N0")) đ</p>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-xl p-4">
+        <p class="text-xs uppercase text-slate-500 font-semibold">Khách hàng mới</p>
+        <p class="text-2xl font-black text-slate-800 mt-1">@((ViewBag.TotalCustomers as int? ?? 0).ToString("N0"))</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+    <div class="xl:col-span-2 bg-white border border-slate-100 rounded-xl p-4">
+        <h3 class="font-bold text-slate-800 mb-3">Doanh thu theo ngày</h3>
+        <div class="h-[320px]"><canvas id="reportRevenueChart"></canvas></div>
+    </div>
+    <div class="bg-white border border-slate-100 rounded-xl p-4">
+        <h3 class="font-bold text-slate-800 mb-3">Top sản phẩm bán chạy</h3>
+        <div class="space-y-3">
+            @foreach (var p in topProducts)
+            {
+                var tenSanPham = (getProp(p, "TenSanPham") ?? "Không rõ").ToString();
+                var soLuong = getProp(p, "SoLuongBan") ?? getProp(p, "SoLuong") ?? 0;
+                var doanhThuObj = getProp(p, "DoanhThu") ?? 0m;
+                decimal doanhThu = 0m;
+                decimal.TryParse(doanhThuObj.ToString(), out doanhThu);
+                <div class="border border-slate-100 rounded-lg p-3">
+                    <p class="font-semibold text-slate-700 text-sm">@tenSanPham</p>
+                    <p class="text-xs text-slate-500 mt-1">Số lượng: <span class="font-bold">@soLuong</span></p>
+                    <p class="text-xs text-slate-500">Doanh thu: <span class="font-bold">@doanhThu.ToString("N0") đ</span></p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="bg-white border border-slate-100 rounded-xl overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-100">
+        <h3 class="font-bold text-slate-800">Đơn hàng trong kỳ</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500 uppercase text-[11px]">
+                <tr>
+                    <th class="py-3 px-4 text-left">Mã ĐH</th>
+                    <th class="py-3 px-4 text-left">Người nhận</th>
+                    <th class="py-3 px-4 text-right">Tổng tiền</th>
+                    <th class="py-3 px-4 text-left">Trạng thái</th>
+                    <th class="py-3 px-4 text-left">Ngày đặt</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                @if (orders.Any())
+                {
+                    foreach (var o in orders.OrderByDescending(x => x.NgayDat).Take(20))
+                    {
+                        <tr>
+                            <td class="py-3 px-4 font-semibold">#@o.MaDonHang</td>
+                            <td class="py-3 px-4">@o.TenNguoiNhan</td>
+                            <td class="py-3 px-4 text-right font-semibold">@((o.TongTien ?? 0).ToString("N0")) đ</td>
+                            <td class="py-3 px-4">@(o.TrangThaiDonHang != null ? o.TrangThaiDonHang.TenTrangThai : "N/A")</td>
+                            <td class="py-3 px-4">@(o.NgayDat.HasValue ? o.NgayDat.Value.ToString("dd/MM/yyyy HH:mm") : "")</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="5" class="py-8 text-center text-slate-400">Không có dữ liệu đơn hàng trong kỳ.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+ </div>
+
+@section scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        function exportReportPdf() {
+            var root = document.getElementById('report-export-root');
+            if (!root || typeof html2pdf === 'undefined') {
+                window.print();
+                return;
+            }
+
+            var opt = {
+                margin: 8,
+                filename: 'bao-cao-doanh-thu-' + new Date().toISOString().slice(0, 10) + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            };
+
+            html2pdf().set(opt).from(root).save();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var raw = @Html.Raw(ViewBag.RevenueByDay ?? "[]");
+            var labels = raw.map(function (x) { return x.date; });
+            var values = raw.map(function (x) { return x.revenue; });
+            var ctx = document.getElementById('reportRevenueChart').getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Doanh thu',
+                        data: values,
+                        borderColor: '#007cc2',
+                        backgroundColor: 'rgba(0,124,194,0.75)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        maxBarThickness: 52,
+                        minBarLength: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

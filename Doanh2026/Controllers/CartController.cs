@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Web.Mvc;
 using Doanh2026.Models;
@@ -11,12 +11,10 @@ namespace Doanh2026.Controllers
     {
         private Doanh2026Entities db = new Doanh2026Entities();
 
-        // GET: Cart/Index - Xem giỏ hàng
         public ActionResult Index()
         {
             if (Session["UserId"] == null)
             {
-                // Gợi mở modal login khi chưa đăng nhập
                 TempData["RequireLogin"] = "true";
                 return RedirectToAction("Index", "Home");
             }
@@ -29,7 +27,6 @@ namespace Doanh2026.Controllers
 
             if (gioHang == null)
             {
-                // Tạo giỏ hàng mới nếu chưa có
                 gioHang = new GioHang { MaNguoiDung = userId };
                 db.GioHangs.Add(gioHang);
                 db.SaveChanges();
@@ -38,7 +35,6 @@ namespace Doanh2026.Controllers
             return View(gioHang);
         }
 
-        // POST: Cart/AddToCart - Thêm sản phẩm vào giỏ (AJAX)
         [HttpPost]
         public JsonResult AddToCart(int productId, int quantity = 1)
         {
@@ -53,10 +49,10 @@ namespace Doanh2026.Controllers
                 if (sanPham == null)
                     return Json(new { success = false, message = "Sản phẩm không tồn tại!" });
 
-                if (sanPham.SoLuongTon < quantity)
+                var tonKhoSanPham = sanPham.SoLuongTon ?? 0;
+                if (tonKhoSanPham < quantity)
                     return Json(new { success = false, message = "Số lượng tồn kho không đủ!" });
 
-                // Lấy hoặc tạo giỏ hàng
                 var gioHang = db.GioHangs.FirstOrDefault(g => g.MaNguoiDung == userId);
                 if (gioHang == null)
                 {
@@ -65,13 +61,17 @@ namespace Doanh2026.Controllers
                     db.SaveChanges();
                 }
 
-                // Kiểm tra sản phẩm đã có trong giỏ chưa
                 var existingItem = db.ChiTietGioHangs
                     .FirstOrDefault(c => c.MaGioHang == gioHang.MaGioHang && c.MaSanPham == productId);
 
                 if (existingItem != null)
                 {
-                    existingItem.SoLuong = (existingItem.SoLuong) + quantity;
+                    var nextQty = existingItem.SoLuong + quantity;
+                    var tonKhoHienTai = sanPham.SoLuongTon ?? 0;
+                    if (nextQty > tonKhoHienTai)
+                        return Json(new { success = false, message = "Số lượng yêu cầu vượt quá tồn kho." });
+
+                    existingItem.SoLuong = nextQty;
                     db.Entry(existingItem).State = EntityState.Modified;
                 }
                 else
@@ -85,13 +85,13 @@ namespace Doanh2026.Controllers
                 }
                 db.SaveChanges();
 
-                // Đếm tổng số item trong giỏ
                 int totalItems = db.ChiTietGioHangs
                     .Where(c => c.MaGioHang == gioHang.MaGioHang)
-                    .Sum(c => c.SoLuong);
+                    .Select(c => (int?)c.SoLuong)
+                    .Sum() ?? 0;
 
-                return Json(new { 
-                    success = true, 
+                return Json(new {
+                    success = true,
                     message = $"Đã thêm \"{sanPham.TenSanPham}\" vào giỏ hàng!",
                     cartCount = totalItems
                 });
@@ -102,21 +102,22 @@ namespace Doanh2026.Controllers
             }
         }
 
-        // POST: Cart/UpdateQuantity
         [HttpPost]
         public JsonResult UpdateQuantity(int chiTietId, int quantity)
         {
             if (Session["UserId"] == null)
-                return Json(new { success = false, requireLogin = true });
+                return Json(new { success = false, requireLogin = true, message = "Phiên đăng nhập đã hết hạn." });
 
             try
             {
                 int userId = (int)Session["UserId"];
-                var item = db.ChiTietGioHangs.Include(c => c.GioHang)
-                             .FirstOrDefault(c => c.MaChiTietGio == chiTietId && c.GioHang.MaNguoiDung == userId);
+                var item = db.ChiTietGioHangs
+                    .Include(c => c.GioHang)
+                    .Include(c => c.SanPham)
+                    .FirstOrDefault(c => c.MaChiTietGio == chiTietId && c.GioHang.MaNguoiDung == userId);
 
                 if (item == null)
-                    return Json(new { success = false, message = "Không tìm thấy sản phẩm trong giỏ!" });
+                    return Json(new { success = false, message = "Không tìm thấy sản phẩm trong giỏ." });
 
                 if (quantity <= 0)
                 {
@@ -124,66 +125,71 @@ namespace Doanh2026.Controllers
                 }
                 else
                 {
+                    var tonKho = item.SanPham != null ? (item.SanPham.SoLuongTon ?? 0) : 0;
+                    if (quantity > tonKho)
+                        return Json(new { success = false, message = "Số lượng yêu cầu vượt quá tồn kho." });
+
                     item.SoLuong = quantity;
                     db.Entry(item).State = EntityState.Modified;
                 }
+
                 db.SaveChanges();
 
-                // Tính lại tổng
-                var gioHang = db.GioHangs.Include(g => g.ChiTietGioHangs.Select(c => c.SanPham))
-                                         .FirstOrDefault(g => g.MaNguoiDung == userId);
-                decimal total = 0;
-                int cartCount = 0;
-                if (gioHang != null)
-                {
-                    foreach(var c in gioHang.ChiTietGioHangs)
-                    {
-                        var gia = c.SanPham.GiaUuDai ?? c.SanPham.GiaGoc;
-                        total += gia * (c.SoLuong);
-                        cartCount += c.SoLuong;
-                    }
-                }
+                var gioHang = db.GioHangs.FirstOrDefault(g => g.MaNguoiDung == userId);
+                if (gioHang == null)
+                    return Json(new { success = true, total = "0", cartCount = 0 });
+
+                var cartItems = db.ChiTietGioHangs
+                    .Include(c => c.SanPham)
+                    .Where(c => c.MaGioHang == gioHang.MaGioHang)
+                    .ToList();
+
+                decimal total = cartItems.Sum(c => (c.SanPham.GiaUuDai ?? c.SanPham.GiaGoc) * c.SoLuong);
+                int cartCount = cartItems.Sum(c => c.SoLuong);
 
                 return Json(new { success = true, total = total.ToString("N0"), cartCount = cartCount });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = "Không thể cập nhật giỏ hàng: " + ex.Message });
             }
         }
 
-        // POST: Cart/RemoveItem
         [HttpPost]
         public JsonResult RemoveItem(int chiTietId)
         {
             if (Session["UserId"] == null)
-                return Json(new { success = false, requireLogin = true });
+                return Json(new { success = false, requireLogin = true, message = "Phiên đăng nhập đã hết hạn." });
 
             try
             {
                 int userId = (int)Session["UserId"];
-                var item = db.ChiTietGioHangs.Include(c => c.GioHang)
-                             .FirstOrDefault(c => c.MaChiTietGio == chiTietId && c.GioHang.MaNguoiDung == userId);
+                var gioHang = db.GioHangs.FirstOrDefault(g => g.MaNguoiDung == userId);
+                if (gioHang == null)
+                    return Json(new { success = true, message = "Giỏ hàng trống.", cartCount = 0 });
 
-                if (item != null)
-                {
-                    db.ChiTietGioHangs.Remove(item);
-                    db.SaveChanges();
-                }
+                var item = db.ChiTietGioHangs
+                    .FirstOrDefault(c => c.MaChiTietGio == chiTietId && c.MaGioHang == gioHang.MaGioHang);
+
+                if (item == null)
+                    return Json(new { success = false, message = "Không tìm thấy sản phẩm để xóa." });
+
+                db.ChiTietGioHangs.Remove(item);
+                db.SaveChanges();
 
                 int cartCount = db.ChiTietGioHangs
-                    .Where(c => c.GioHang.MaNguoiDung == userId)
-                    .Sum(c => c.SoLuong);
+                    .Where(c => c.MaGioHang == gioHang.MaGioHang)
+                    .Select(c => (int?)c.SoLuong)
+                    .Sum() ?? 0;
 
                 return Json(new { success = true, message = "Đã xóa sản phẩm khỏi giỏ hàng!", cartCount = cartCount });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = "Không thể xóa sản phẩm: " + ex.Message });
             }
         }
 
-        // GET: Cart/GetCartCount - Lấy số lượng sản phẩm trong giỏ (AJAX)
         [HttpGet]
         public JsonResult GetCartCount()
         {

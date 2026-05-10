@@ -88,7 +88,9 @@ namespace Doanh2026.Controllers
         [HttpGet]
         public JsonResult GetProduct(int id)
         {
-            var p = db.SanPhams.Find(id);
+            var p = db.SanPhams
+                .Include(x => x.HinhAnhSanPhams)
+                .FirstOrDefault(x => x.MaSanPham == id);
             if (p == null)
             {
                 return Json(new { success = false, message = "Không tìm thấy sản phẩm" }, JsonRequestBehavior.AllowGet);
@@ -103,7 +105,15 @@ namespace Doanh2026.Controllers
                     GiaUuDai = p.GiaUuDai,
                     SoLuongTon = p.SoLuongTon,
                     MoTa = p.MoTa,
-                    ThongSoKyThuat = p.ThongSoKyThuat // JS Object Array JSON String
+                    ThongSoKyThuat = p.ThongSoKyThuat, // JS Object Array JSON String
+                    HinhAnhSanPhams = p.HinhAnhSanPhams
+                        .OrderByDescending(h => h.LaAnhDaiDien == true)
+                        .ThenBy(h => h.MaHinhAnh)
+                        .Select(h => new {
+                            MaHinhAnh = h.MaHinhAnh,
+                            DuongDanAnh = h.DuongDanAnh,
+                            LaAnhDaiDien = h.LaAnhDaiDien
+                        }).ToList()
                 } 
             }, JsonRequestBehavior.AllowGet);
         }
@@ -135,14 +145,8 @@ namespace Doanh2026.Controllers
                             {
                                 System.IO.Directory.CreateDirectory(uploadPath);
                             }
-                            
-                            // Xóa ảnh cũ (Tùy chọn ghi đè toàn bộ ảnh cũ)
-                            var oldImages = db.HinhAnhSanPhams.Where(h => h.MaSanPham == sanPham.MaSanPham).ToList();
-                            foreach(var img in oldImages) {
-                                string oldFilePath = Server.MapPath(img.DuongDanAnh);
-                                if (System.IO.File.Exists(oldFilePath)) System.IO.File.Delete(oldFilePath);
-                            }
-                            db.HinhAnhSanPhams.RemoveRange(oldImages);
+
+                            var hasMainImage = db.HinhAnhSanPhams.Any(h => h.MaSanPham == sanPham.MaSanPham && h.LaAnhDaiDien == true);
 
                             for (int i = 0; i < Request.Files.Count; i++)
                             {
@@ -157,7 +161,7 @@ namespace Doanh2026.Controllers
                                     {
                                         MaSanPham = sanPham.MaSanPham,
                                         DuongDanAnh = "/Content/Images/Products/" + fileName,
-                                        LaAnhDaiDien = (i == 0)
+                                        LaAnhDaiDien = (!hasMainImage && i == 0)
                                     });
                                 }
                             }

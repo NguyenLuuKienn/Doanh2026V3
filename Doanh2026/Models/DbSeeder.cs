@@ -16,10 +16,16 @@ namespace Doanh2026.Models
                 {
                     db.VaiTroes.AddRange(new List<VaiTro>
                     {
+                        new VaiTro { TenVaiTro = "SuperAdmin" },
                         new VaiTro { TenVaiTro = "Admin" },
                         new VaiTro { TenVaiTro = "Khách hàng" },
                         new VaiTro { TenVaiTro = "Nhân viên" }
                     });
+                    db.SaveChanges();
+                }
+                else if (!db.VaiTroes.Any(r => r.TenVaiTro == "SuperAdmin"))
+                {
+                    db.VaiTroes.Add(new VaiTro { TenVaiTro = "SuperAdmin" });
                     db.SaveChanges();
                 }
 
@@ -62,6 +68,27 @@ namespace Doanh2026.Models
                             SoDienThoai = "0123456789",
                             DiaChi = "Hệ thống",
                             MaVaiTro = adminRole.MaVaiTro,
+                            TrangThaiTaiKhoan = "HoatDong",
+                            NgayDangKy = DateTime.Now
+                        });
+                        db.SaveChanges();
+                    }
+                }
+
+                // 5. Tạo tài khoản SuperAdmin mặc định nếu chưa có
+                if (!db.NguoiDungs.Any(u => u.Email == "superadmin@gmail.com"))
+                {
+                    var superAdminRole = db.VaiTroes.FirstOrDefault(r => r.TenVaiTro == "SuperAdmin");
+                    if (superAdminRole != null)
+                    {
+                        db.NguoiDungs.Add(new NguoiDung
+                        {
+                            HoTen = "Super Administrator",
+                            Email = "superadmin@gmail.com",
+                            MatKhau = "Super@123",
+                            SoDienThoai = "0999999999",
+                            DiaChi = "Hệ thống",
+                            MaVaiTro = superAdminRole.MaVaiTro,
                             TrangThaiTaiKhoan = "HoatDong",
                             NgayDangKy = DateTime.Now
                         });

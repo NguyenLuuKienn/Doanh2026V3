@@ -1,11 +1,11 @@
-@model Doanh2026.Models.GioHang
+﻿@model Doanh2026.Models.GioHang
 @{
     ViewBag.Title = "Giỏ hàng của tôi";
     Layout = "~/Views/Shared/_LayoutIndex.cshtml";
-    
+
     var chiTietList = Model?.ChiTietGioHangs?.ToList() ?? new System.Collections.Generic.List<Doanh2026.Models.ChiTietGioHang>();
     decimal tongTien = 0;
-    foreach(var ct in chiTietList) { tongTien += (ct.SanPham?.GiaUuDai ?? ct.SanPham?.GiaGoc ?? 0) * (ct.SoLuong); }
+    foreach (var ct in chiTietList) { tongTien += (ct.SanPham?.GiaUuDai ?? ct.SanPham?.GiaGoc ?? 0) * ct.SoLuong; }
 }
 
 <div class="mb-4 text-[13px] text-gray-500">
@@ -13,14 +13,13 @@
 </div>
 
 <div class="flex flex-col lg:flex-row gap-6 items-start">
-    <!-- LEFT: Bảng sản phẩm -->
     <div class="w-full lg:flex-1">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-4 md:px-6 py-4 border-b border-gray-100 bg-slate-50 flex justify-between items-center">
                 <h1 class="text-base md:text-lg font-bold text-gray-800"><i class="fas fa-shopping-cart mr-2 text-pcm-blue"></i>Giỏ hàng của tôi</h1>
                 <span class="text-xs md:text-sm text-gray-500">@chiTietList.Count sản phẩm</span>
             </div>
-            
+
             @if (chiTietList.Count == 0)
             {
                 <div class="py-12 md:py-16 text-center px-4">
@@ -33,40 +32,34 @@
             }
             else
             {
-                <div class="divide-y divide-gray-100">
-                    @foreach(var ct in chiTietList)
+                <div class="divide-y divide-gray-100" id="cart-list">
+                    @foreach (var ct in chiTietList)
                     {
                         var gia = ct.SanPham?.GiaUuDai ?? ct.SanPham?.GiaGoc ?? 0;
                         var anhDaiDien = ct.SanPham?.HinhAnhSanPhams?.FirstOrDefault(h => h.LaAnhDaiDien == true)?.DuongDanAnh ?? "";
                         var tenSanPham = ct.SanPham != null ? ct.SanPham.TenSanPham : "Sản phẩm không xác định";
-                        
+
                         <div class="flex flex-col sm:flex-row items-center gap-4 px-4 md:px-6 py-4 hover:bg-gray-50 transition cart-item" id="item-@ct.MaChiTietGio">
-                            <!-- Ảnh -->
                             <img src="@(string.IsNullOrEmpty(anhDaiDien) ? "https://via.placeholder.com/80x80?text=No+Img" : anhDaiDien)" class="w-20 h-20 object-contain bg-gray-50 border border-gray-100 rounded-lg p-1 shrink-0" />
-                            
-                            <!-- Info -->
+
                             <div class="flex-1 min-w-0 text-center sm:text-left">
                                 <a href="/Product/Details/@ct.MaSanPham" class="font-bold text-gray-800 text-sm md:text-base leading-tight hover:text-pcm-blue transition block truncate">@tenSanPham</a>
                                 <p class="text-[11px] md:text-[12px] text-gray-400 mt-0.5">@(ct.SanPham?.DanhMuc?.TenDanhMuc ?? "Danh mục")</p>
                                 <p class="text-red-500 font-bold text-sm md:text-base mt-1">@gia.ToString("N0")đ</p>
                             </div>
-                            
-                            <!-- Middle: Quantity & Subtotal for mobile -->
+
                             <div class="flex items-center justify-between w-full sm:w-auto gap-4 mt-2 sm:mt-0">
-                                <!-- Quantity -->
                                 <div class="flex items-center gap-2">
-                                    <button onclick="changeQty(@ct.MaChiTietGio, -1)" class="w-7 h-7 md:w-8 md:h-8 rounded-lg border border-gray-200 text-gray-600 hover:border-pcm-blue hover:text-pcm-blue transition flex items-center justify-center font-bold text-base md:text-lg">−</button>
+                                    <button type="button" onclick="changeQty(@ct.MaChiTietGio, -1)" class="w-7 h-7 md:w-8 md:h-8 rounded-lg border border-gray-200 text-gray-600 hover:border-pcm-blue hover:text-pcm-blue transition flex items-center justify-center font-bold text-base md:text-lg">-</button>
                                     <span id="qty-@ct.MaChiTietGio" class="font-bold text-gray-800 w-6 md:w-8 text-center text-sm md:text-base">@ct.SoLuong</span>
-                                    <button onclick="changeQty(@ct.MaChiTietGio, 1)" class="w-7 h-7 md:w-8 md:h-8 rounded-lg border border-gray-200 text-gray-600 hover:border-pcm-blue hover:text-pcm-blue transition flex items-center justify-center font-bold text-base md:text-lg">+</button>
+                                    <button type="button" onclick="changeQty(@ct.MaChiTietGio, 1)" class="w-7 h-7 md:w-8 md:h-8 rounded-lg border border-gray-200 text-gray-600 hover:border-pcm-blue hover:text-pcm-blue transition flex items-center justify-center font-bold text-base md:text-lg">+</button>
                                 </div>
-                                
-                                <!-- Subtotal -->
+
                                 <div class="text-right sm:w-28">
-                                    <span id="subtotal-@ct.MaChiTietGio" class="font-bold text-pcm-blue text-sm md:text-base">@((gia * (ct.SoLuong)).ToString("N0"))đ</span>
+                                    <span id="subtotal-@ct.MaChiTietGio" class="font-bold text-pcm-blue text-sm md:text-base">@((gia * ct.SoLuong).ToString("N0"))đ</span>
                                 </div>
-                                
-                                <!-- Delete -->
-                                <button onclick="removeItem(@ct.MaChiTietGio)" class="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0">
+
+                                <button type="button" onclick="removeItem(@ct.MaChiTietGio)" class="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0">
                                     <i class="fas fa-trash text-sm"></i>
                                 </button>
                             </div>
@@ -77,7 +70,6 @@
         </div>
     </div>
 
-    <!-- RIGHT: Thanh toán -->
     @if (chiTietList.Count > 0)
     {
         <div class="w-full lg:w-80 shrink-0">
@@ -110,87 +102,101 @@
     }
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     var unitPrices = {
-        @foreach(var ct in chiTietList)
+        @foreach (var ct in chiTietList)
         {
             var gia = ct.SanPham?.GiaUuDai ?? ct.SanPham?.GiaGoc ?? 0;
-            @:@ct.MaChiTietGio: @gia,
+            @:@ct.MaChiTietGio: @gia.ToString(System.Globalization.CultureInfo.InvariantCulture),
         }
     };
 
     function changeQty(id, delta) {
         var qtyEl = document.getElementById('qty-' + id);
-        if(!qtyEl) return;
-        var currentQty = parseInt(qtyEl.textContent);
+        if (!qtyEl) return;
+
+        var currentQty = parseInt(qtyEl.textContent || '0', 10);
         var newQty = currentQty + delta;
-        
-        if(newQty < 1) {
+
+        if (newQty < 1) {
             removeItem(id);
             return;
         }
-        
-        $.post('/Cart/UpdateQuantity', { chiTietId: id, quantity: newQty }, function(res) {
-            if(res.success) {
-                qtyEl.textContent = newQty;
-                var price = unitPrices[id] || 0;
-                document.getElementById('subtotal-' + id).textContent = (price * newQty).toLocaleString('vi-VN') + 'đ';
-                updateCartBadge(res.cartCount);
-                recalcTotal();
-            } else {
-                Swal.fire({icon: 'error', title: 'Lỗi', text: res.message});
+
+        $.post('/Cart/UpdateQuantity', { chiTietId: id, quantity: newQty }, function (res) {
+            if (!res || !res.success) {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: (res && res.message) ? res.message : 'Không thể cập nhật số lượng.' });
+                return;
             }
+
+            qtyEl.textContent = newQty;
+            var price = unitPrices[id] || 0;
+            var sub = document.getElementById('subtotal-' + id);
+            if (sub) sub.textContent = (price * newQty).toLocaleString('vi-VN') + 'đ';
+            updateCartBadges(res.cartCount || 0);
+            recalcTotal();
+        }).fail(function (xhr) {
+            Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: 'Không thể cập nhật giỏ hàng.' });
         });
     }
-    
+
     function removeItem(id) {
         Swal.fire({
-            title: 'Xóa sản phẩm?', 
+            title: 'Xóa sản phẩm?',
             text: 'Bạn muốn xóa sản phẩm này khỏi giỏ hàng?',
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
             confirmButtonText: 'Xóa',
             cancelButtonText: 'Giữ lại'
-        }).then(result => {
-            if(result.isConfirmed) {
-                $.post('/Cart/RemoveItem', { chiTietId: id }, function(res) {
-                    if(res.success) {
-                        document.getElementById('item-' + id)?.remove();
-                        updateCartBadge(res.cartCount);
-                        recalcTotal();
-                        Toast.fire({icon: 'success', title: res.message});
-                    }
-                });
-            }
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+
+            $.post('/Cart/RemoveItem', { chiTietId: id }, function (res) {
+                if (!res || !res.success) {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: (res && res.message) ? res.message : 'Không thể xóa sản phẩm.' });
+                    return;
+                }
+
+                var row = document.getElementById('item-' + id);
+                if (row) row.remove();
+                updateCartBadges(res.cartCount || 0);
+                recalcTotal();
+
+                if (typeof Toast !== 'undefined') {
+                    Toast.fire({ icon: 'success', title: res.message || 'Đã xóa sản phẩm.' });
+                }
+
+                if (document.querySelectorAll('.cart-item').length === 0) {
+                    location.reload();
+                }
+            }).fail(function () {
+                Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: 'Không thể xóa sản phẩm khỏi giỏ hàng.' });
+            });
         });
     }
-    
+
     function recalcTotal() {
         var total = 0;
-        document.querySelectorAll('.cart-item').forEach(function(row) {
-            var idMatch = row.id.match(/item-(\d+)/);
-            if(!idMatch) return;
-            var id = parseInt(idMatch[1]);
-            var qty = parseInt(document.getElementById('qty-' + id)?.textContent || '0');
+        document.querySelectorAll('.cart-item').forEach(function (row) {
+            var m = row.id.match(/item-(\d+)/);
+            if (!m) return;
+            var id = parseInt(m[1], 10);
+            var qty = parseInt((document.getElementById('qty-' + id) || {}).textContent || '0', 10);
             var price = unitPrices[id] || 0;
             total += price * qty;
         });
+
         var formatted = total.toLocaleString('vi-VN') + 'đ';
         var el1 = document.getElementById('total-display');
         var el2 = document.getElementById('grand-total');
-        if(el1) el1.textContent = formatted;
-        if(el2) el2.textContent = formatted;
+        if (el1) el1.textContent = formatted;
+        if (el2) el2.textContent = formatted;
     }
-    
-    function updateCartBadge(count) {
-        var badge = document.getElementById('cart-badge');
-        if(badge) badge.textContent = count;
-    }
-    
-    // Load số giỏ khi vào trang
-    $.get('/Cart/GetCartCount', function(res) {
-        updateCartBadge(res.count);
+
+    $(function () {
+        $.get('/Cart/GetCartCount', function (res) {
+            updateCartBadges((res && typeof res.count === 'number') ? res.count : 0);
+        });
     });
 </script>

@@ -21,6 +21,11 @@
                         <i class="fas fa-envelope mr-2 opacity-70"></i> @Model.Email
                     </p>
                 </div>
+                <div class="md:ml-auto mt-4 md:mt-0">
+                    <button type="button" onclick="openProfileEditModal()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-pcm-blue font-bold shadow-lg hover:bg-blue-50 transition">
+                        <i class="fas fa-pen"></i> Chỉnh sửa thông tin
+                    </button>
+                </div>
             </div>
             <!-- Decor -->
             <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
@@ -96,3 +101,96 @@
         </div>
     </div>
 </div>
+
+<!-- Profile Edit Modal -->
+<div id="profileEditModal" class="fixed inset-0 z-[300] hidden overflow-y-auto">
+    <button type="button" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm" onclick="closeProfileEditModal()" aria-label="Đóng chỉnh sửa thông tin"></button>
+    <div class="min-h-screen px-4 text-center flex items-center justify-center">
+        <div id="profileEditDialog" class="inline-block w-full max-w-xl bg-white rounded-2xl shadow-2xl text-left overflow-hidden transform scale-95 opacity-0 transition-all relative z-10">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800">Chỉnh sửa thông tin cá nhân</h3>
+                    <p class="text-xs text-gray-500 mt-1">Cập nhật tên, số điện thoại và địa chỉ nhận hàng</p>
+                </div>
+                <button type="button" onclick="closeProfileEditModal()" class="text-gray-400 hover:text-red-500 text-xl leading-none">&times;</button>
+            </div>
+
+            <form id="profileEditForm" class="p-6 space-y-4" onsubmit="submitProfileEdit(event)">
+                <div>
+                    <label for="editHoTen" class="block text-xs font-bold text-gray-600 mb-1.5 uppercase">Họ &amp; Tên <span class="text-red-500">*</span></label>
+                    <input type="text" id="editHoTen" name="hoTen" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none" value="@Model.HoTen" required />
+                </div>
+                <div>
+                    <label for="editSoDienThoai" class="block text-xs font-bold text-gray-600 mb-1.5 uppercase">Số điện thoại <span class="text-red-500">*</span></label>
+                    <input type="tel" id="editSoDienThoai" name="soDienThoai" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none" value="@Model.SoDienThoai" required />
+                </div>
+                <div>
+                    <label for="editDiaChi" class="block text-xs font-bold text-gray-600 mb-1.5 uppercase">Địa chỉ <span class="text-red-500">*</span></label>
+                    <textarea id="editDiaChi" name="diaChi" rows="3" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-pcm-blue focus:ring-1 focus:ring-pcm-blue outline-none" required>@Model.DiaChi</textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeProfileEditModal()" class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition">Hủy</button>
+                    <button type="submit" id="btnSaveProfile" class="px-4 py-2 rounded-lg bg-pcm-blue text-white font-semibold hover:bg-blue-800 transition">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+<script>
+    function openProfileEditModal() {
+        const modal = document.getElementById('profileEditModal');
+        const dialog = document.getElementById('profileEditDialog');
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            dialog.classList.remove('scale-95', 'opacity-0');
+            dialog.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeProfileEditModal() {
+        const modal = document.getElementById('profileEditModal');
+        const dialog = document.getElementById('profileEditDialog');
+        dialog.classList.remove('scale-100', 'opacity-100');
+        dialog.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => modal.classList.add('hidden'), 180);
+    }
+
+    function submitProfileEdit(event) {
+        event.preventDefault();
+
+        const data = {
+            hoTen: $('#editHoTen').val().trim(),
+            soDienThoai: $('#editSoDienThoai').val().trim(),
+            diaChi: $('#editDiaChi').val().trim()
+        };
+
+        if (!data.hoTen || !data.soDienThoai || !data.diaChi) {
+            Toast.fire({ icon: 'warning', title: 'Vui lòng nhập đầy đủ thông tin.' });
+            return;
+        }
+
+        $('#btnSaveProfile').prop('disabled', true).text('Đang lưu...');
+
+        $.post('/Account/UpdateProfile', data, function (res) {
+            if (res.success) {
+                Toast.fire({ icon: 'success', title: res.message });
+                closeProfileEditModal();
+                setTimeout(() => location.reload(), 800);
+            } else {
+                Swal.fire({ icon: 'error', title: 'Cập nhật thất bại', text: res.message });
+            }
+        }).fail(function () {
+            Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: 'Không thể cập nhật thông tin cá nhân.' });
+        }).always(function () {
+            $('#btnSaveProfile').prop('disabled', false).text('Lưu thay đổi');
+        });
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeProfileEditModal();
+    });
+</script>
+}
